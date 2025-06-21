@@ -1,0 +1,384 @@
+#+TITLE: Common Lisp Tutorial Project: CLOS Web Application
+#+AUTHOR: Your Name
+#+STARTUP: showall
+
+* Overview
+
+This project is a self-contained tutorial to learn how to:
+- Build web applications using Common Lisp Object System (CLOS)
+- Use Hunchentoot for web server functionality
+- Generate HTML dynamically with CL-WHO
+- Design object-oriented web applications
+- Integrate CLOS with web frameworks
+- Apply testing practices from previous tutorials to web development
+
+* Project: Task Management Web Application
+
+The goal is to build a simple but functional web application that demonstrates CLOS concepts in a web context. We'll create a task management system where:
+
+- Tasks are CLOS objects with different types and behaviors
+- The web interface is generated entirely from Lisp code using CL-WHO
+- Hunchentoot handles HTTP requests and routing
+- CLOS generic functions provide different behaviors for different task types
+- The application demonstrates inheritance, method combinations, and object-oriented design
+
+** Features
+
+- Create, view, edit, and delete tasks
+- Different task types (Personal, Work, Urgent) with specialized behaviors
+- Form validation using CLOS methods
+- Session management
+- RESTful URL structure
+- Responsive web interface
+
+** Input/Output
+
+The application will provide a web interface where users can:
+
+1. View a list of all tasks
+2. Add new tasks with different types
+3. Edit existing tasks
+4. Mark tasks as complete
+5. Delete tasks
+
+The interface will be generated dynamically from CLOS objects, demonstrating how Lisp's object-oriented features integrate with web development.
+
+* What This Tutorial Covers
+
+- CLOS class design and inheritance
+- Generic functions and method combinations
+- Web server setup with Hunchentoot
+- HTML generation with CL-WHO
+- Form handling and validation
+- Session management
+- Testing web applications
+- Object-oriented web architecture
+
+* Project Structure
+
+#+begin_example
+clos-web-tutorial/
+├── README.org
+├── clos-web.asd              ;; Main system definition
+├── package.lisp              ;; Package definitions
+├── src/                      ;; Source code
+│   ├── models.lisp           ;; CLOS classes for tasks and users
+│   ├── web-server.lisp       ;; Hunchentoot setup and routing
+│   ├── views.lisp            ;; CL-WHO HTML generation
+│   └── utils.lisp            ;; Helper functions and utilities
+├── tests/                    ;; Test files
+│   ├── package.lisp          ;; Test package definition
+│   ├── models.lisp           ;; Tests for CLOS models
+│   ├── web-server.lisp       ;; Tests for web functionality
+│   └── views.lisp            ;; Tests for HTML generation
+├── static/                   ;; Static assets
+│   ├── css/
+│   │   └── style.css         ;; Application styles
+│   └── js/
+│       └── app.js            ;; Client-side JavaScript
+└── .github/workflows/        ;; CI/CD (reusing from tutorial 2)
+    └── main.yml
+#+end_example
+
+* Requirements
+
+- Quicklisp
+- Emacs + SLY
+- SBCL (Steel Bank Common Lisp)
+- Hunchentoot (web server)
+- CL-WHO (HTML generation)
+- FiveAM (testing - from tutorial 2)
+
+* Getting Started
+
+** Initial Setup
+
+1. Clone or create this project in your Quicklisp local-projects directory
+2. The project will automatically install Hunchentoot and CL-WHO via Quicklisp
+
+** Running the Tutorial
+
+1. Open Emacs and start SLY with ~M-x sly~
+2. Load the system in the REPL:
+   #+begin_src lisp
+   (ql:quickload :clos-web)
+   #+end_src
+   
+3. Start the web server:
+   #+begin_src lisp
+   (clos-web:start-server)
+   #+end_src
+   
+4. Open your web browser and navigate to ~http://localhost:8080~
+
+5. You should see the task management interface
+
+** Development Workflow
+
+** Running Tests
+
+Load and run tests using the same approach from tutorial 2:
+
+#+begin_src lisp
+;; Load both systems
+(ql:quickload :clos-web)
+(ql:quickload :clos-web-tests)
+
+;; Run all tests
+(clos-web-tests:run-all-tests)
+
+;; Run specific test suites
+(clos-web-tests:run-model-tests)
+(clos-web-tests:run-web-tests)
+(clos-web-tests:run-view-tests)
+#+end_src
+
+** Stopping the Server
+
+#+begin_src lisp
+(clos-web:stop-server)
+#+end_src
+
+* CLOS Concepts Covered
+
+** Class Hierarchy
+
+We'll build a class hierarchy for tasks:
+
+#+begin_src lisp
+(defclass task ()
+  ((id :initform (generate-id))
+   (title :initarg :title :accessor task-title)
+   (description :initarg :description :accessor task-description)
+   (status :initform :pending :accessor task-status)
+   (created-at :initform (get-universal-time) :accessor task-created-at)))
+
+(defclass personal-task (task)
+  ((priority :initform :low :accessor task-priority)))
+
+(defclass work-task (task)
+  ((deadline :initarg :deadline :accessor task-deadline)
+   (assigned-to :initarg :assigned-to :accessor task-assigned-to)))
+
+(defclass urgent-task (task)
+  ((priority :initform :high :accessor task-priority)
+   (escalation-time :initform 3600 :accessor task-escalation-time)))
+#+end_src
+
+** Generic Functions
+
+We'll implement generic functions that behave differently for different task types:
+
+#+begin_src lisp
+(defgeneric task-display-name (task)
+  (:documentation "Return a display name for the task"))
+
+(defgeneric task-css-class (task)
+  (:documentation "Return CSS class for styling"))
+
+(defgeneric validate-task (task)
+  (:documentation "Validate task data"))
+
+(defgeneric task-to-html (task)
+  (:documentation "Convert task to HTML representation"))
+#+end_src
+
+** Method Combinations
+
+We'll use method combinations to add logging and validation:
+
+#+begin_src lisp
+(defgeneric save-task (task)
+  (:method-combination :around)
+  (:documentation "Save task with logging and validation"))
+#+end_src
+
+* Web Development with CLOS
+
+** Hunchentoot Integration
+
+Hunchentoot provides a CLOS-based web server where:
+- Request and response objects are CLOS instances
+- Routes can be defined using generic functions
+- Session management is object-oriented
+
+** CL-WHO HTML Generation
+
+CL-WHO allows us to generate HTML directly from Lisp code:
+
+#+begin_src lisp
+(defun render-task-list (tasks)
+  (with-html-output-to-string (*standard-output* nil :prologue t)
+    (:html
+     (:head (:title "Task Manager"))
+     (:body
+      (:h1 "Task List")
+      (:div :class "task-list"
+            (dolist (task tasks)
+              (render-task-item task)))))))
+#+end_src
+
+** Form Handling
+
+We'll create CLOS-based form handling:
+
+#+begin_src lisp
+(defclass task-form ()
+  ((title :initarg :title :accessor form-title)
+   (description :initarg :description :accessor form-description)
+   (task-type :initarg :task-type :accessor form-task-type)))
+
+(defgeneric render-form (form)
+  (:documentation "Render HTML form for the object"))
+#+end_src
+
+* Advanced CLOS Features
+
+** Metaobject Protocol (MOP) Basics
+
+We'll touch on MOP concepts:
+- Class redefinition
+- Slot access optimization
+- Dynamic class creation
+
+** Object Persistence
+
+Simple in-memory storage with CLOS:
+- Task registry as a singleton object
+- Serialization to/from JSON
+- Session storage
+
+* Testing Web Applications
+
+** Testing CLOS Models
+
+Test CLOS classes and methods:
+- Object creation and slot access
+- Generic function behavior
+- Method combinations
+- Validation logic
+
+** Testing Web Functionality
+
+Test web components:
+- Route handling
+- Form processing
+- HTML generation
+- Session management
+
+** Integration Testing
+
+Test the full application:
+- End-to-end workflows
+- Browser simulation
+- Performance testing
+
+* Development Tips
+
+** CLOS Best Practices
+
+1. **Design for extensibility**: Use generic functions for operations that might vary
+2. **Use method combinations**: Add cross-cutting concerns like logging
+3. **Document your classes**: Use ~:documentation~ for classes and methods
+4. **Test your methods**: Each method should have corresponding tests
+
+** Web Development Tips
+
+1. **Separate concerns**: Keep CLOS models separate from web presentation
+2. **Use CL-WHO effectively**: Leverage Lisp's macro system for HTML generation
+3. **Handle errors gracefully**: Use CLOS error handling in web contexts
+4. **Validate input**: Use CLOS methods for form validation
+
+** Debugging Tips
+
+1. **Inspect objects**: Use ~(describe object)~ to examine CLOS instances
+2. **Trace methods**: Use ~(trace method-name)~ to debug method calls
+3. **Web debugging**: Check Hunchentoot's debug output
+4. **HTML inspection**: View source to debug CL-WHO output
+
+* Common Issues and Solutions
+
+** CLOS Issues
+
+*** Method Not Found Errors:
+- Ensure generic function is defined before methods
+- Check package imports and exports
+- Verify method qualifiers match generic function
+
+*** Slot Access Errors:
+- Check slot names match class definition
+- Ensure slots are accessible (public vs private)
+- Verify object is of correct class
+
+** Web Development Issues
+
+*** Hunchentoot Not Starting:
+- Check port availability
+- Verify Hunchentoot is loaded
+- Check for syntax errors in route definitions
+
+*** CL-WHO Compilation Errors:
+- Ensure proper HTML structure
+- Check for unclosed tags
+- Verify all symbols are bound
+
+*** Form Processing Issues:
+- Check parameter names match form fields
+- Verify form method and action
+- Debug parameter parsing
+
+* Future Enhancements
+
+- Database integration with CLOS
+- User authentication and authorization
+- Real-time updates with WebSockets
+- RESTful API endpoints
+- Mobile-responsive design
+- Task categories and tags
+- File attachments
+- Email notifications
+
+* Contributing to This Tutorial
+
+This tutorial is designed to be a living document that improves over time. Your contributions and suggestions are welcome!
+
+** Suggesting Changes
+
+If you find errors, have suggestions for improvements, or want to add new content:
+
+1. **Via GitHub Issues**: Create an issue describing the problem or enhancement
+2. **Via Pull Requests**: Fork the repository and submit a pull request
+3. **Via Direct Contact**: Reach out with your suggestions
+
+** Areas for Improvement
+
+- More advanced CLOS examples
+- Additional web frameworks
+- Database integration examples
+- Performance optimization techniques
+- Security best practices
+- Deployment strategies
+
+* References and Further Reading
+
+** CLOS Resources
+
+- "Object-Oriented Programming in Common Lisp" by Sonya E. Keene
+- "Practical Common Lisp" by Peter Seibel (CLOS chapters)
+- Common Lisp HyperSpec (CLOS section)
+
+** Web Development Resources
+
+- Hunchentoot documentation and examples
+- CL-WHO tutorial and reference
+- Common Lisp web development community
+
+** Testing Resources
+
+- FiveAM documentation (from tutorial 2)
+- Web application testing best practices
+- CLOS testing patterns and examples
+
+* License
+
+This tutorial is provided as-is for educational purposes. Feel free to use, modify, and distribute according to your needs. 
