@@ -1,0 +1,128 @@
+#+TITLE: Common Lisp Tutorial Projects
+#+AUTHOR: Your Name
+#+STARTUP: showall
+
+* Overview
+
+This repository contains a collection of hands-on Common Lisp tutorial projects designed to teach practical development skills through building real applications. Each project focuses on different aspects of Common Lisp development, from basic project structure to advanced testing and CI/CD practices.
+
+These tutorials are designed as personal reference projects - the kind you can return to when you need to remember "how do I set up a Lisp project again?" or "what was that testing workflow?"
+
+* About These Tutorials
+
+I originally created these tutorial projects for my own learning and as personal reference materials. After working through them and finding them useful for remembering Common Lisp development workflows, I decided to make them public in case they might help others who are learning or re-learning Common Lisp.
+
+** Development Process
+
+These tutorials were developed with the assistance of AI, but I designed them according to my specific learning needs and preferences. I personally worked through every exercise, tested all the code, and verified that the workflows function as described. The projects reflect my approach to learning Common Lisp through practical, hands-on development.
+
+** Feedback and Contributions
+
+If you encounter any bugs, errors, or unclear instructions, please submit an issue on GitHub. I want these tutorials to be as helpful as possible for anyone using them.
+
+Feel free to fork this repository and adapt these tutorials to your own learning style and needs. That's exactly what I'd encourage - make them your own!
+
+* Projects
+
+** 1. CSV Report Generator (~csv-report/~)
+
+*Recommended as your first project*
+
+A practical tutorial that builds a simple CSV expense report generator. This project teaches fundamental Common Lisp development concepts:
+
+- Creating and structuring a new project from scratch
+- Writing ASDF system definitions (~.asd~ files)
+- Organizing code with packages and modules
+- Using external libraries via Quicklisp (~cl-csv~, ~str~)
+- File I/O and data processing
+- Interactive development workflow with SLY
+- Modular code design
+
+*What you'll build:* A utility that reads a CSV file of expenses and generates formatted summary reports.
+
+*Skills learned:* Project setup, package management, external dependencies, basic data processing, REPL-driven development.
+
+** 2. Testing and CI/CD (~lisp-testing/~)
+
+*Do this project after completing the CSV report generator*
+
+An advanced tutorial focused on testing practices and continuous integration for Common Lisp projects. This project demonstrates:
+
+- Setting up comprehensive unit testing with FiveAM
+- Test-driven development practices
+- Organizing test suites and test utilities
+- Continuous integration with GitHub Actions
+- Code coverage and quality metrics
+- Multiple ASDF system definitions (main + tests)
+- Documentation and project maintenance
+
+*What you'll build:* A calculator library with full test coverage and automated CI/CD pipeline.
+
+*Skills learned:* Unit testing, TDD, CI/CD, test organization, code quality practices, GitHub Actions.
+
+* Prerequisites
+
+These tutorials assume you have a working Common Lisp development environment set up. You'll need:
+
+- **SBCL** (Steel Bank Common Lisp) or another Common Lisp implementation
+- **Quicklisp** - The de facto package manager for Common Lisp
+- **Emacs + SLY** - The recommended development environment (or SLIME as an alternative)
+
+** Setup Resources
+
+If you need to set up your development environment, these resources provide excellent guidance:
+
+*** Quicklisp Installation
+- **Official Quicklisp Site**: https://www.quicklisp.org/beta/
+- **Quicklisp Tutorial**: https://lispcookbook.github.io/cl-cookbook/getting-started.html#install-quicklisp
+
+*** SLY (Superior Lisp Interaction Mode for Emacs)
+- **SLY GitHub Repository**: https://github.com/joaotavora/sly
+- **SLY User Manual**: https://joaotavora.github.io/sly/
+- **Common Lisp Cookbook - Emacs Setup**: https://lispcookbook.github.io/cl-cookbook/emacs-ide.html
+
+*** Alternative: SLIME
+- **SLIME Homepage**: https://slime.common-lisp.dev/
+- **SLIME Manual**: https://slime.common-lisp.dev/doc/html/
+
+*** General Common Lisp Resources
+- **Common Lisp Cookbook**: https://lispcookbook.github.io/cl-cookbook/
+- **Practical Common Lisp** (free online book): https://gigamonkeys.com/book/
+- **Common Lisp HyperSpec**: http://www.lispworks.com/documentation/HyperSpec/Front/
+
+* Getting Started
+
+1. **Set up your development environment** using the links above
+2. **Clone or download this repository** to your Quicklisp local-projects directory:
+   #+begin_example
+   ~/.quicklisp/local-projects/project-tutorials/
+   #+end_example
+3. **Start with the CSV Report project** (~csv-report/~) - read its README.org for detailed instructions
+4. **Continue with the Testing project** (~lisp-testing/~) once you're comfortable with basic project structure
+
+* Development Philosophy
+
+These tutorials are designed for developers who are already comfortable with Common Lisp syntax and want to learn how to build real, well-structured projects. They focus on:
+
+- **Learning by building** - Each project creates something useful
+- **REPL-driven development** - Interactive programming at its best
+- **Real-world practices** - Using actual tools and workflows
+- **Project organization** - How to structure code with packages, modules, and systems
+- **Development workflows** - Effective use of ASDF, Quicklisp, and development environments
+- **Best practices** - Testing, CI/CD, documentation, and maintainable code
+
+The goal is not to teach Common Lisp syntax, but to bridge the gap between knowing the language and confidently building real projects with proper structure and professional workflows.
+
+* Contributing
+
+These tutorials are living documents that improve over time. If you find errors, have suggestions, or want to add new tutorial projects:
+
+- **Open an issue** to discuss changes or report problems
+- **Submit a pull request** with improvements
+- **Share your experience** - what worked well, what was confusing?
+
+The best tutorials come from real experience, so your feedback makes these resources better for everyone.
+
+* License
+
+MIT License - Feel free to use these tutorials for learning, teaching, or as a foundation for your own projects. 
