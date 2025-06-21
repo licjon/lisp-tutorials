@@ -1,0 +1,309 @@
+#+TITLE: Exercise 2: Setting Up CI/CD for Your Lisp Project
+#+AUTHOR: Your Name
+#+STARTUP: showall
+
+* Introduction
+
+In this exercise, we'll walk through setting up Continuous Integration (CI) for your Common Lisp project step by step. By the end, you'll have a GitHub Actions workflow that automatically runs your tests whenever you push changes to your repository.
+
+* Prerequisites
+
+- A GitHub account
+- Git installed on your computer
+- A Common Lisp project with some basic tests
+- SBCL installed locally
+
+* Step 1: Prepare Your Project for CI
+
+Let's ensure your project is ready for CI by checking these requirements:
+
+1. Your project should have a clear directory structure:
+   #+begin_example
+   lisp-testing/
+   ├── src/                  # Source code
+   ├── tests/                # Test files
+   ├── lisp-testing.asd      # Main system definition
+   └── lisp-testing-tests.asd  # Test system definition
+   #+end_example
+
+2. Your project should have working tests using FiveAM
+3. Your .asd files should be properly configured
+
+*Task:* Verify your project structure matches the example above. If not, organize it accordingly.
+
+* Step 2: Create a GitHub Repository
+
+If you haven't already, create a GitHub repository for your project:
+
+1. Go to [[https://github.com/new][github.com/new]]
+2. Enter a repository name (e.g., "lisp-testing")
+3. Choose public or private visibility
+4. Click "Create repository"
+5. Follow the instructions to push your existing project to GitHub:
+
+   #+begin_src shell
+   # In your project directory
+   git init
+   git add .
+   git commit -m "Initial commit"
+   git branch -M main
+   git remote add origin https://github.com/yourusername/lisp-testing.git
+   git push -u origin main
+   #+end_src
+
+*Task:* Create a repository and push your project to GitHub.
+
+* Step 3: Understanding GitHub Actions
+
+GitHub Actions is GitHub's built-in CI/CD platform. Here's what you need to know:
+
+1. Workflows are defined in YAML files
+2. Files are stored in the .github/workflows directory
+3. Workflows are triggered by events like pushes or pull requests
+4. Each workflow contains jobs, which contain steps
+5. Steps can run commands or use actions
+
+*Task:* Create a .github/workflows directory in your project:
+
+#+begin_src shell
+mkdir -p .github/workflows
+#+end_src
+
+* Step 4: Create Your First Workflow
+
+Let's create a basic workflow file that will:
+- Install SBCL
+- Set up Quicklisp
+- Run your tests
+
+Create a file named .github/workflows/main.yml with the following content:
+
+#+begin_src yaml
+name: Lisp CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Install SBCL
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y sbcl
+    
+    - name: Install Quicklisp
+      run: |
+        curl -O https://beta.quicklisp.org/quicklisp.lisp
+        sbcl --load quicklisp.lisp --eval '(quicklisp-quickstart:install)' --eval '(ql:add-to-init-file)' --eval '(quit)'
+    
+    - name: Install dependencies
+      run: |
+        mkdir -p ~/quicklisp/local-projects/
+        ln -s $GITHUB_WORKSPACE ~/quicklisp/local-projects/lisp-testing
+        sbcl --load ~/quicklisp/setup.lisp --eval '(ql:quickload :fiveam)' --eval '(quit)'
+    
+    - name: Run tests
+      run: |
+        sbcl --load ~/quicklisp/setup.lisp \
+             --eval '(ql:quickload :lisp-testing)' \
+             --eval '(ql:quickload :lisp-testing-tests)' \
+             --eval '(format t "~%~%Running tests...~%~%")' \
+             --eval '(let ((results (lisp-testing-tests:run-lisp-testing-tests)))
+                       (when (fiveam:results-status results)
+                         (uiop:quit 1)))' \
+             --eval '(uiop:quit 0)'
+#+end_src
+
+*Task:* 
+1. Create this file in your project
+2. Replace any system names if needed for your specific lisp-testing implementation
+3. Replace "run-all-tests" with your actual test runner function if it's named differently
+
+* Step 5: Customize the Workflow for Your Project
+
+You need to adjust the workflow file to match your specific project:
+
+1. *System Names*: Make sure the system names match your actual project structure
+2. *Test Runner*: Make sure the function name matches how you run tests
+3. *Dependencies*: If you need additional libraries, add them to the "Install dependencies" step
+
+*Example*: If your test function is "run-lisp-testing-tests", modify these lines:
+
+#+begin_src yaml
+    - name: Install dependencies
+      run: |
+        mkdir -p ~/quicklisp/local-projects/
+        ln -s $GITHUB_WORKSPACE ~/quicklisp/local-projects/lisp-testing
+        sbcl --load ~/quicklisp/setup.lisp --eval '(ql:quickload :fiveam)' --eval '(quit)'
+    
+    - name: Run tests
+      run: |
+        sbcl --load ~/quicklisp/setup.lisp \
+             --eval '(ql:quickload :lisp-testing)' \
+             --eval '(ql:quickload :lisp-testing-tests)' \
+             --eval '(format t "~%~%Running tests...~%~%")' \
+             --eval '(let ((results (lisp-testing-tests:run-lisp-testing-tests)))
+                       (when (fiveam:results-status results)
+                         (uiop:quit 1)))' \
+             --eval '(uiop:quit 0)'
+#+end_src
+
+*Task:* Customize the workflow file for your specific project.
+
+* Step 6: Commit and Push Your Workflow
+
+Add the workflow file to your repository:
+
+#+begin_src shell
+git add .github/workflows/main.yml
+git commit -m "Add GitHub Actions CI workflow"
+git push
+#+end_src
+
+*Task:* Commit and push your workflow file.
+
+* Step 7: Check Your Workflow Results
+
+1. Go to your GitHub repository page
+2. Click on the "Actions" tab
+3. You should see your workflow running or completed
+4. Click on the workflow run to see details
+5. Expand the job and steps to see the output
+
+*Task:* Check if your workflow completed successfully. If not, troubleshoot using the error messages.
+
+* Step 8: Troubleshooting Common Issues
+
+If your workflow fails, check these common issues:
+
+1. *Package not found*: 
+   - Make sure your system and package names match exactly
+   - Check that all dependencies are loaded
+
+2. *Function not found*: 
+   - Verify that your test runner function is exported from your test package
+   - Make sure function names match exactly (case-sensitive)
+
+3. *System not found*: 
+   - Verify the symbolic link path in the workflow
+   - Make sure .asd files are in the root of your project
+
+*Task:* If your workflow fails, fix any issues and push the changes.
+
+* Step 9: Adding a CI Badge to Your README
+
+Once your workflow is passing, add a badge to your README file:
+
+1. Go to the Actions tab in your repository
+2. Click on your workflow
+3. Click the "..." menu in the upper right
+4. Select "Create status badge"
+5. Copy the badge HTML code
+6. Paste it at the top of your README file
+
+*Example badge in Org-mode format*:
+#+begin_src org
+#+HTML: <a href="https://github.com/yourusername/lisp-testing/actions/workflows/main.yml"><img src="https://github.com/yourusername/lisp-testing/actions/workflows/main.yml/badge.svg" alt="Lisp CI"></a>
+#+end_src
+
+*Task:* Add a CI badge to your README file.
+
+* Step 10: Testing Your CI Workflow with Code Changes
+
+Now that your workflow is set up, let's verify it works correctly by making deliberate code changes:
+
+1. *Make a passing change*:
+   - Add a new function or test that should pass
+   - Commit and push to see a successful workflow run
+   
+   #+begin_src lisp
+   ;; Example: Add this to your tests file
+   (deftest simple-passing-test ()
+     (is (= 4 (+ 2 2))))
+   #+end_src
+
+2. *Make a failing change (optional)*:
+   - Deliberately introduce a bug or failing test
+   - Commit and push to see the workflow catch the failure
+   - This confirms your CI is correctly identifying problems
+   
+   #+begin_src lisp
+   ;; Example: Add this to your tests file
+   (deftest deliberately-failing-test ()
+     (is (= 5 (+ 2 2))))
+   #+end_src
+
+3. *Fix the failure*:
+   - If you introduced a failure, fix it
+   - Commit and push to see the workflow return to success
+
+*Task:* Make at least one code change that runs through your CI pipeline to verify it works.
+
+* Step 11: Advanced CI Features (Optional)
+
+Consider these advanced features for your CI workflow:
+
+1. *Testing with multiple Lisp implementations*:
+   #+begin_src yaml
+   strategy:
+     matrix:
+       lisp: [sbcl, ccl]
+       include:
+         - lisp: sbcl
+           pkg: sbcl
+         - lisp: ccl
+           pkg: clozure-cl
+   #+end_src
+
+2. *Caching dependencies* to speed up workflows:
+   #+begin_src yaml
+   - name: Cache Quicklisp
+     uses: actions/cache@v3
+     with:
+       path: ~/quicklisp
+       key: ${{ runner.os }}-quicklisp-${{ hashFiles('*.asd') }}
+   #+end_src
+
+3. *Adding code coverage*:
+   #+begin_src yaml
+   - name: Install coverage tools
+     run: |
+       sbcl --load ~/quicklisp/setup.lisp \
+            --eval '(ql:quickload :cl-coveralls)' \
+            --eval '(quit)'
+   #+end_src
+
+*Task:* Experiment with at least one advanced feature.
+
+* Conclusion
+
+Congratulations! You've now set up a CI workflow for your Common Lisp project. Your tests will run automatically whenever you push changes, helping you catch issues early and maintain code quality.
+
+* Further Resources
+
+- [[https://docs.github.com/en/actions][GitHub Actions Documentation]]
+- [[https://docs.github.com/en/actions/learn-github-actions/understanding-github-actions][Understanding GitHub Actions]]
+- [[https://lispcookbook.github.io/cl-cookbook/testing.html][Common Lisp Cookbook: Testing]]
+- [[https://common-lisp.net/project/fiveam/docs/][FiveAM Documentation]]
+
+* Exercise Tasks Summary
+
+1. Organize your project structure
+2. Create a GitHub repository
+3. Create a .github/workflows directory
+4. Create a main.yml workflow file
+5. Customize the workflow for your project
+6. Commit and push your workflow
+7. Check your workflow results
+8. Troubleshoot any issues
+9. Add a CI badge to your README
+10. Test CI with code changes
+11. Experiment with advanced features 

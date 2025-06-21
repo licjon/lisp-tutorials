@@ -1,0 +1,259 @@
+#+TITLE: Common Lisp Tutorial Project: Testing and CI/CD
+#+AUTHOR: Your Name
+#+STARTUP: showall
+
+#+HTML: <a href="https://github.com/YOUR_USERNAME/YOUR_REPO_NAME/actions/workflows/main.yml"><img src="https://github.com/YOUR_USERNAME/YOUR_REPO_NAME/actions/workflows/main.yml/badge.svg" alt="Lisp CI"></a>
+
+* Overview
+
+This project is a self-contained tutorial to help me remember how to:
+- Set up proper testing for Common Lisp projects
+- Implement continuous integration/continuous deployment (CI/CD)
+- Organize code with proper test structure
+- Use test frameworks effectively
+- Follow best practices for Lisp development
+
+I always forget the workflow, so this is my personal reference for getting up and running with testing in Lisp projects.
+
+* Project: Calculator Library with Testing
+
+The goal is to build a simple calculator library with comprehensive tests and CI/CD setup. This demonstrates how to:
+
+1. Structure a project with separate test files
+2. Use FiveAM for unit testing
+3. Set up GitHub Actions for CI
+4. Implement code coverage
+5. Document code properly
+6. Create a development workflow that emphasizes testing
+
+We'll build a small but practical calculator library with basic and advanced mathematical functions, and implement tests for each component.
+
+** Library Features
+
+- Basic arithmetic operations (add, subtract, multiply, divide)
+- Statistical functions (mean, median, standard deviation)
+- Special mathematical functions (factorial, fibonacci)
+- Function composition and chaining
+- Error handling and validation
+
+* What This Tutorial Covers
+
+- Setting up FiveAM for unit testing
+- Writing effective test suites
+- Test-driven development in Lisp
+- Continuous integration with GitHub Actions
+- Test coverage with cl-coveralls
+- Documenting code with docstrings and documentation generators
+- Using ASDF test-op effectively
+
+* Project Structure
+
+#+begin_example
+lisp-testing/
+├── README.org
+├── lisp-testing.asd      ;; Main system definition
+├── lisp-testing-test.asd ;; Test system definition
+├── src/                  ;; Source code
+│   ├── package.lisp      ;; Package definitions
+│   ├── arithmetic.lisp   ;; Basic arithmetic operations
+│   ├── statistics.lisp   ;; Statistical functions
+│   └── special.lisp      ;; Special math functions
+├── tests/                ;; Test directory
+│   ├── package.lisp      ;; Test package definition
+│   ├── main.lisp         ;; Test suite setup
+│   ├── arithmetic.lisp   ;; Tests for arithmetic
+│   ├── statistics.lisp   ;; Tests for statistics
+│   └── special.lisp      ;; Tests for special functions
+├── .github/workflows/    ;; GitHub Actions CI configuration
+│   └── main.yml          ;; CI workflow
+└── docs/                 ;; Documentation
+    └── index.md          ;; Generated documentation
+#+end_example
+
+* Requirements
+
+- Quicklisp
+- Emacs + SLY
+- SBCL (Steel Bank Common Lisp)
+- FiveAM (testing library)
+- GitHub account (for CI/CD)
+
+* Getting Started
+
+** Initial Setup
+
+1. Clone or create this project in your Quicklisp local-projects directory
+2. If you plan to use GitHub Actions CI/CD, customize the badge at the top of this README:
+   - Replace ~YOUR_USERNAME~ with your GitHub username
+   - Replace ~YOUR_REPO_NAME~ with your repository name
+   - The badge will show build status once you push to GitHub and set up Actions
+
+** Running the Tutorial
+
+1. Open Emacs and start SLY with ~M-x sly~
+2. Load the main system in the REPL:
+   #+begin_src lisp
+   (ql:quickload :lisp-testing)
+   #+end_src
+   
+4. Load the test system:
+   #+begin_src lisp
+   (ql:quickload :lisp-testing-tests)
+   #+end_src
+   
+5. Run all tests using one of these methods:
+   #+begin_src lisp
+   ;; Method 1: Using the exported function (recommended)
+   (lisp-testing-tests:run-lisp-testing-tests)
+   
+   ;; Method 2: Using ASDF test operation
+   (asdf:test-system :lisp-testing)
+   #+end_src
+
+* Development Workflow
+
+** Test-Driven Development Approach
+
+1. Write a test for new functionality in the relevant test file
+2. Run the test to see it fail
+3. Implement the functionality in the source file
+4. Run the test again to see it pass
+5. Refactor code while ensuring tests still pass
+
+** Running Tests
+
+There are several ways to run tests, depending on your needs:
+
+1. Run all tests:
+   #+begin_src lisp
+   ;; From any package (recommended)
+   (lisp-testing-tests:run-lisp-testing-tests)
+   
+   ;; Or using ASDF
+   (asdf:test-system :lisp-testing)
+   #+end_src
+
+2. Run a specific test suite:
+   #+begin_src lisp
+   ;; From any package (recommended)
+   (lisp-testing-tests:run-arithmetic-tests)
+   (lisp-testing-tests:run-statistics-tests)
+   (lisp-testing-tests:run-special-tests)
+   #+end_src
+
+3. Run a single test:
+   #+begin_src lisp
+   ;; From any package (recommended)
+   (fiveam:run! 'lisp-testing-tests::add-two-positive-numbers)
+   
+   ;; Or if you're in the lisp-testing-tests package
+   (in-package :lisp-testing-tests)
+   (fiveam:run! 'add-two-positive-numbers)
+   #+end_src
+
+** Important Notes About Running Tests
+
+1. Always load both systems in order:
+   #+begin_src lisp
+   (ql:quickload :lisp-testing)      ; First load the main system
+   (ql:quickload :lisp-testing-tests) ; Then load the test system
+   #+end_src
+
+2. When in the `CL-USER` package, you must use package-qualified names:
+   #+begin_src lisp
+   ;; This will work
+   (lisp-testing-tests:run-lisp-testing-tests)
+   
+   ;; This will NOT work (undefined function)
+   (fiveam:run! 'arithmetic-tests)
+   #+end_src
+
+3. If you want to use FiveAM functions directly, you must use package qualifiers:
+   #+begin_src lisp
+   ;; This will work
+   (fiveam:run! 'lisp-testing-tests::arithmetic-tests)
+   
+   ;; This will NOT work (undefined function)
+   (fiveam:run! 'arithmetic-tests)
+   #+end_src
+
+** Continuous Integration
+
+The project includes GitHub Actions workflow that:
+
+1. Sets up a Lisp environment
+2. Installs dependencies
+3. Runs all tests
+4. Reports test results
+5. Generates code coverage report
+
+** Important Testing Tips
+
+*** Writing Good Tests
+
+Good tests in Lisp should:
+
+1. Test one specific thing
+2. Have clear, descriptive names
+3. Include both positive and negative test cases
+4. Test edge cases
+5. Be independent of other tests
+
+*** Example Test Structure
+
+#+begin_src lisp
+(in-package :lisp-testing-tests)
+
+(def-suite arithmetic-tests
+  :description "Tests for arithmetic operations")
+
+(in-suite arithmetic-tests)
+
+(test add-two-positive-numbers
+  "Test that adding two positive numbers works correctly."
+  (is (= 5 (lisp-testing:add 2 3)))
+  (is (= 10 (lisp-testing:add 7 3))))
+
+(test add-with-negative-numbers
+  "Test addition with negative numbers."
+  (is (= -1 (lisp-testing:add 2 -3)))
+  (is (= 0 (lisp-testing:add -7 7))))
+#+end_src
+
+*** Using FiveAM Effectively
+
+FiveAM provides several assertion macros:
+- ~is~ - Basic assertion
+- ~signals~ - Test that an expression signals a condition
+- ~finishes~ - Test that an expression completes without error
+- ~for-all~ - Property-based testing
+
+Example:
+#+begin_src lisp
+(test division-by-zero-error
+  "Test that dividing by zero signals an error."
+  (signals division-by-zero (lisp-testing:divide 5 0)))
+#+end_src
+
+* Exercises
+
+The tutorial includes exercises to practice testing concepts:
+
+** Exercise 1: Extend Calculator with Trigonometry Functions
+Practice test-driven development by implementing trigonometric functions (sin, cos, tan, etc.) 
+for the calculator library. Write tests first, then implement the functions.
+
+** Exercise 2: Set Up CI/CD with GitHub Actions
+Learn how to set up continuous integration and deployment by creating GitHub Actions workflows 
+that automatically run tests, generate coverage reports, and deploy your project.
+
+* Related Resources
+
+- [[https://common-lisp.net/project/fiveam/docs/index.html][FiveAM Documentation]]
+- [[https://lispcookbook.github.io/cl-cookbook/testing.html][Common Lisp Cookbook: Testing]]
+- [[https://github.com/features/actions][GitHub Actions Documentation]]
+- [[https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-other-languages][GitHub Actions for Other Languages]]
+
+* License
+
+Released under the MIT License. 

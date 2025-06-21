@@ -1,0 +1,24 @@
+# Untracked files
+.README.org.~undo-tree~
+.exercise1.org.~undo-tree~
+.testing-approach.org.~undo-tree~
+README.org~
+exercise1.org~
+lisp-testing-tests.asd.bak
+testing-approach.org~
+
+# Lisp specific files
+*.fasl
+*.~undo-tree~
+.*~undo-tree~
+*~
+\#*\#
+*.bak
+
+# Emacs backup files
+*~
+\#*\#
+.#*
+
+# Other common files to ignore
+.DS_Store 

@@ -1,0 +1,248 @@
+#+TITLE: main.lisp Overview
+#+STARTUP: showall
+
+* Purpose
+
+The ~main.lisp~ file defines the top-level ~start~ function for your project. It acts as your entry point — everything begins here.
+
+This is where you:
+- Read data from a file
+- Call parsing and formatting functions
+- Display the result
+
+* Code Walkthrough
+
+#+begin_src lisp
+(defun start (&optional (file "expenses.csv"))
+  "Main entry point. Loads a CSV file and prints a formatted summary."
+  (let ((summary (csv-report/formatter:format-summary
+                  (csv-report/parser:parse-csv file))))
+    (format t "~a~%" summary)))
+#+end_src
+
+** ~start~ function
+- Takes an optional argument: path to a CSV file
+- Calls ~parse-csv~ to load and process the file
+- Passes result to ~format-summary~
+- Finally, prints the output to the terminal with ~format~
+
+* Full Project Workflow Summary
+
+** 1. Project Structure
+Your project now has a complete structure:
+- ~csv-report.asd~ - System definition
+- ~package.lisp~ - Package/namespace definitions
+- ~main.lisp~ - Entry point
+- ~parser.lisp~ - Data extraction and processing
+- ~formatter.lisp~ - Output formatting
+- ~expenses.csv~ - Sample data
+
+** 2. How Data Flows Through The System
+1. ~main.lisp~ calls ~parser:parse-csv~ on a file
+2. ~parser.lisp~ reads the CSV, transforms it into association lists
+3. ~parser.lisp~ computes category totals 
+4. ~formatter.lisp~ creates pretty output
+5. ~main.lisp~ displays the result
+
+** 3. How To Load and Run
+#+begin_src lisp
+;; In the SLY REPL
+(ql:quickload :csv-report)  ;; Load the system
+(csv-report:start)          ;; Run with default file
+;; Or specify a file:
+(csv-report:start "my-other-expenses.csv")
+#+end_src
+
+** 4. Testing Individual Components
+You can test each part separately:
+#+begin_src lisp
+;; Test just parsing
+(csv-report/parser:test-parser "expenses.csv")
+
+;; Test just formatting (after parsing)
+(csv-report/formatter:test-formatter "expenses.csv")
+#+end_src
+
+* Using Package Symbols Without Prefixes
+
+If you find it tedious to type package prefixes like ~csv-report/parser:~ before each function name, you have several options to simplify your workflow:
+
+** 1. Change the Current Package in the REPL
+
+You can temporarily switch your REPL's current package:
+
+#+begin_src lisp
+;; Switch to the parser package
+(in-package :csv-report/parser)
+
+;; Now you can call functions directly
+(test-parser "expenses.csv")
+(parse-csv "expenses.csv")
+
+;; When done, switch back to the main package or CL-USER
+(in-package :csv-report)
+;; or
+(in-package :cl-user)
+#+end_src
+
+** 2. Import Specific Symbols
+
+You can import just the symbols you need into your current package:
+
+#+begin_src lisp
+;; Import specific functions from parser package
+(import '(csv-report/parser:parse-csv 
+          csv-report/parser:test-parser
+          csv-report/parser:total-by-category))
+
+;; Now use them without prefixes
+(test-parser "expenses.csv")
+#+end_src
+
+** 3. Use Another Package
+
+You can make all exported symbols from a package available:
+
+#+begin_src lisp
+;; Make all csv-report/parser exports available
+(use-package :csv-report/parser)
+
+;; Make all csv-report/formatter exports available
+(use-package :csv-report/formatter)
+
+;; Now use any exported functions directly
+(parse-csv "expenses.csv")
+(format-summary (parse-csv "expenses.csv"))
+#+end_src
+
+** 4. Create a Custom Package for Interactive Work
+
+For REPL exploration, you can create a custom package that imports everything:
+
+#+begin_src lisp
+;; Define a workspace package
+(defpackage :csv-workspace
+  (:use :cl :csv-report :csv-report/parser :csv-report/formatter))
+
+;; Switch to it
+(in-package :csv-workspace)
+
+;; Now use any function without prefixes
+(start)
+(test-parser "expenses.csv")
+(format-summary (parse-csv "expenses.csv"))
+#+end_src
+
+Define it directly in the repl.
+
+** 5. Add Prefixes with Emacs Completion
+
+In SLY/Emacs, you can use tab completion for package prefixes:
+1. Type ~csv-~ and press TAB to see available packages
+2. Type ~csv-report/p~ and press TAB to complete to ~csv-report/parser:~
+3. Type ~parse~ and press TAB to complete to ~csv-report/parser:parse-csv~
+
+** Considerations
+
+- Option 1 (changing packages) is most useful when working extensively with one component
+- Option 2 (importing symbols) is best when you need only a few functions
+- Option 3 (use-package) is convenient but can lead to name conflicts
+- Option 4 (custom package) is ideal for interactive development sessions
+- For production code, explicit package prefixes are often preferred for clarity
+
+* Emacs + SLY Tips
+
+** Load your system
+#+begin_src elisp
+M-x sly                      ;; Start SLY REPL
+(ql:quickload :csv-report)   ;; Load the system
+#+end_src
+
+Alternatively, use ~sly-quickload~ (no standard keybinding) to load a system directly.
+
+** Jump to definition
+- ~sly-edit-definition~ (bound to ~M-.~) to jump to a function definition
+- ~sly-pop-find-definition-stack~ (bound to ~M-,~) to jump back
+
+** Evaluate things
+- ~sly-eval-last-expression~ (bound to ~C-x C-e~) to eval the last expression
+- ~sly-eval-defun~ (bound to ~C-M-x~) to compile the current top-level form
+- ~sly-compile-and-load-file~ (bound to ~C-c C-k~) to compile the whole buffer
+- ~sly-load-file~ (bound to ~C-c C-l~) to load the current file into the REPL
+
+** REPL commands
+- ~sly-mrepl~ (bound to ~C-c C-z~) to switch to the REPL
+- ~sly-mrepl-clear-repl~ (no standard keybinding) to clear the REPL
+- ~sly-mrepl-previous-input-or-button~ (bound to ~M-p~ in REPL) to cycle through history
+- ~sly-mrepl-next-input-or-button~ (bound to ~M-n~ in REPL) to cycle forward in history
+
+** REPL call
+Once loaded, call the entry point directly:
+#+begin_src lisp
+(csv-report:start)
+#+end_src
+
+** Reload workflow
+- Make edits in any file
+- Recompile the form (~sly-eval-defun~ or ~sly-compile-and-load-file~)
+- Rerun ~start~ in the REPL
+
+* Design Philosophy
+
+** Simple API
+The main interface is designed to be minimal. Users don't need to understand the internals to use the system.
+
+** Component Separation
+Each file has a clear role:
+- ~parser.lisp~ - Data processing (backend)
+- ~formatter.lisp~ - Presentation (frontend)
+- ~main.lisp~ - Coordination (glue)
+
+** Testability
+Each component can be tested in isolation, making debugging easier.
+
+* Common Questions
+
+** "Why is my change not taking effect?"
+1. Did you recompile the file? (~sly-compile-and-load-file~ or ~C-c C-k~)
+2. If that doesn't work, try: ~(ql:quickload :csv-report :force t)~
+
+** "How do I add more formats?"
+1. Add new functions in ~formatter.lisp~
+2. Export them in ~package.lisp~
+3. Use them in your code or from the REPL
+
+** "How can I handle different CSV formats?"
+1. Modify ~parse-csv~ and ~row-to-alist~ in ~parser.lisp~
+2. Consider making them more flexible with column detection
+
+* Next Steps
+
+** Project Extensions
+Once comfortable with the basics:
+1. Add command-line arguments
+2. Support different CSV formats
+3. Add data visualization or charting
+4. Create a simple web interface
+
+** Learning More Common Lisp
+- Practical Common Lisp: https://gigamonkeys.com/book/
+- Common Lisp HyperSpec: http://clhs.lisp.se/
+- Common Lisp Cookbook: https://lispcookbook.github.io/cl-cookbook/
+
+** Development Tools
+- SLY Manual: https://joaotavora.github.io/sly/
+- Quicklisp: https://www.quicklisp.org/
+
+* Conclusion
+
+This project tutorial has shown:
+1. How to structure a Common Lisp project
+2. Using the ASDF system definition
+3. Package organization
+4. Modular code design
+5. REPL-driven development
+6. Working with real data files
+
+Remember that iterative development is key in Lisp - you don't need to restart your environment to make changes. Just recompile and continue!
+

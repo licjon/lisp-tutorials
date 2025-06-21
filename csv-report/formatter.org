@@ -1,0 +1,274 @@
+#+TITLE: Understanding formatter.lisp
+#+STARTUP: showall
+
+* The Role of Formatter in Our Project
+
+The ~formatter.lisp~ file is responsible for:
+1. Taking processed data from the parser
+2. Formatting it into human-readable output
+3. Optionally saving to files
+
+This completes the ETL pattern by handling the presentation layer.
+
+* Key Functions
+
+** ~format-summary~: Basic Output
+Creates a plain text report summarizing expenses by category.
+
+#+begin_src lisp
+(defun format-summary (parsed-data)
+  "Format the parsed CSV data into a nice summary report.
+   Takes the result of csv-report/parser:parse-csv as input."
+  (let* ((category-totals (csv-report/parser:total-by-category parsed-data))
+         (grand-total (csv-report/parser:grand-total category-totals)))
+    
+    ;; Create a multi-line formatted report
+    (with-output-to-string (s)
+      ;; Header
+      (format s "Category Totals~%")
+      (format s "===============~%~%")
+      
+      ;; Category breakdown
+      (dolist (category-pair category-totals)
+        (destructuring-bind (category . amount) category-pair
+          (format s "~A: $~,2F~%" category amount)))
+      
+      ;; Total
+      (format s "~%Total spent: $~,2F~%" grand-total))))
+#+end_src
+
+** ~format-markdown-summary~: Alternative Output
+Shows how to create a different format for the same data.
+
+#+begin_src lisp
+(defun format-markdown-summary (parsed-data)
+  "Format the parsed CSV data into a Markdown-formatted report.
+   This function demonstrates an alternate output format."
+  (let* ((category-totals (csv-report/parser:total-by-category parsed-data))
+         (grand-total (csv-report/parser:grand-total category-totals)))
+    
+    (with-output-to-string (s)
+      ;; Header
+      (format s "# Expense Report Summary~%~%")
+      
+      ;; Table header
+      (format s "| Category | Amount |~%")
+      (format s "|----------|--------|~%")
+      
+      ;; Category breakdown as table rows
+      (dolist (category-pair category-totals)
+        (destructuring-bind (category . amount) category-pair
+          (format s "| ~A | $~,2F |~%" category amount)))
+      
+      ;; Total
+      (format s "~%**Total spent:** $~,2F~%" grand-total))))
+#+end_src
+
+** ~save-report-to-file~: File I/O
+Writes the report to disk.
+
+#+begin_src lisp
+(defun save-report-to-file (parsed-data &optional (filename "expense-report.txt"))
+  "Save a formatted report to a file.
+   Demonstrates file output in addition to string formatting."
+  (with-open-file (out filename :direction :output :if-exists :supersede)
+    (write-string (format-summary parsed-data) out)
+    filename))
+#+end_src
+
+** ~test-formatter~: REPL Playground
+Interactive function for exploring from the REPL.
+
+#+begin_src lisp
+(defun test-formatter (file-path)
+  "Test function to parse a CSV file and display a formatted report."
+  (let ((data (csv-report/parser:parse-csv file-path)))
+    (if data
+        (progn
+          (format t "~&~A~%" (format-summary data))
+          (format t "~&~%Report could also be saved to file with:~%")
+          (format t "(csv-report/formatter:save-report-to-file data)~%~%")
+          (format t "Or displayed as Markdown:~%~%~A~%" 
+                  (format-markdown-summary data)))
+        (format t "~&ERROR: Could not parse data from ~A~%" file-path))))
+#+end_src
+
+* Common Lisp String Formatting Tips
+
+** ~format~ Function
+The built-in ~format~ function is incredibly powerful but can look cryptic. Here are common patterns:
+
+*** Basic substitution
+#+begin_src lisp
+(format nil "Hello, ~A!" "world")  ;; => "Hello, world!"
+#+end_src
+
+*** Number formatting
+#+begin_src lisp
+(format nil "~,2F" 3.14159)  ;; => "3.14"
+(format nil "$~,2F" 42.5)    ;; => "$42.50"
+#+end_src
+
+*** Newlines
+#+begin_src lisp
+(format nil "Line 1~%Line 2")  ;; => "Line 1
+                               ;;     Line 2"
+#+end_src
+
+*** Conditional formatting
+#+begin_src lisp
+(format nil "~[Zero~;One~;Two~:;Many~]" 1)  ;; => "One"
+#+end_src
+
+** ~with-output-to-string~
+This macro is ideal for building multi-line strings:
+
+#+begin_src lisp
+(with-output-to-string (stream)
+  (format stream "Line 1~%")
+  (format stream "Line 2~%"))
+;; => "Line 1
+;;     Line 2
+;;     "
+#+end_src
+
+It creates a temporary string stream and returns the accumulated string at the end.
+
+** String Libraries
+If Common Lisp's string manipulation feels verbose, try libraries:
+
+- ~str~: A more modern string manipulation library
+- ~cl-ppcre~: For regular expressions
+- ~cl-markdown~: For parsing/generating markdown
+
+* File I/O Tips
+
+** ~with-open-file~ Macro
+Automatically handles opening and closing files:
+
+#+begin_src lisp
+(with-open-file (stream "file.txt" :direction :output
+                                  :if-exists :supersede)
+  (write-string "Hello, world!" stream))
+#+end_src
+
+** Options to Consider
+
+*** :direction
+- ~:input~ - Reading (default)
+- ~:output~ - Writing
+- ~:io~ - Both
+
+*** :if-exists
+- ~:error~ - Signal an error (default)
+- ~:supersede~ - Overwrite the file
+- ~:append~ - Add to the end
+
+*** :if-does-not-exist
+- ~:error~ - Signal an error (default for ~:input~)
+- ~:create~ - Create the file (default for ~:output~)
+
+* Testing the Formatter
+
+You can test the formatter interactively using:
+
+#+begin_src lisp
+;; In SLY REPL (access with sly-mrepl / C-c C-z):
+(csv-report/formatter:test-formatter "expenses.csv")
+#+end_src
+
+Or you can save to a file:
+
+#+begin_src lisp
+(let ((data (csv-report/parser:parse-csv "expenses.csv")))
+  (csv-report/formatter:save-report-to-file data "my-report.txt"))
+
+;; Then view the file using find-file (C-x C-f) in Emacs
+#+end_src
+
+* Emacs/SLY Workflow Tips
+
+** Compiling and Testing Formatter
+1. Edit formatter.lisp
+2. Compile with ~sly-compile-and-load-file~ (bound to ~C-c C-k~)
+3. Switch to REPL with ~sly-mrepl~ (bound to ~C-c C-z~)
+4. Test with ~(csv-report/formatter:test-formatter "expenses.csv")~
+5. Make adjustments and repeat
+
+** Viewing Output Files
+After saving a report to file:
+1. Open the file with ~find-file~ (bound to ~C-x C-f~)
+2. If it's a Markdown file, use ~markdown-mode~ (if installed) with ~M-x markdown-mode~
+
+** Interactive Development
+- Use ~sly-eval-defun~ (bound to ~C-M-x~) to quickly update individual functions
+- Use ~sly-macroexpand-1~ (bound to ~C-c C-m~) to see how macros expand
+- Use ~sly-describe-symbol~ (bound to ~C-c C-d d~) to get documentation on functions
+
+* Footguns and Gotchas
+
+** Format String Errors
+Format strings with incorrect directives can cause runtime errors:
+
+#+begin_src lisp
+;; This will error - ~Z is not a valid directive
+(format nil "~Z" 42)
+#+end_src
+
+Common mistake: forgetting the ~ character or using the wrong directive.
+
+** Output Stream vs String
+~format~ behaves differently depending on the first argument:
+
+#+begin_src lisp
+(format t "To terminal~%")     ;; Prints to *standard-output*
+(format nil "Returns string")  ;; Returns the formatted string
+(format stream "To stream")    ;; Writes to a specific stream
+#+end_src
+
+** Character vs String
+Common confusion in Lisp:
+- ~#\newline~ - A character
+- ~"~%"~ - String with format directive that inserts a newline
+
+* Next Steps
+
+Now that both the parser and formatter are complete:
+
+1. The core functionality works through ~(csv-report:start)~
+2. You can test individual components with ~test-parser~ and ~test-formatter~
+3. Consider extending with new features:
+   - Command-line interface
+   - Interactive prompt for file selection
+   - Additional report formats (HTML, CSV summary)
+
+* Advanced Ideas
+
+** Memoization for Large Files
+If your CSV files get large, consider caching results:
+
+#+begin_src lisp
+(defvar *cached-results* (make-hash-table :test #'equal))
+
+(defun cached-parse-csv (file-path)
+  (or (gethash file-path *cached-results*)
+      (setf (gethash file-path *cached-results*)
+            (parse-csv file-path))))
+#+end_src
+
+** Extensible Format Registry
+You could create a registry of output formats:
+
+#+begin_src lisp
+(defvar *formatters* (make-hash-table :test #'eq))
+
+(defun register-formatter (name formatter-fn)
+  (setf (gethash name *formatters*) formatter-fn))
+
+(defun format-with (name data)
+  (funcall (gethash name *formatters*) data))
+
+;; Register your formatters
+(register-formatter :text #'format-summary)
+(register-formatter :markdown #'format-markdown-summary)
+#+end_src 

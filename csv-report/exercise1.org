@@ -1,0 +1,64 @@
+#+TITLE: Exercise 1: Filtering Expenses
+#+AUTHOR: Your Name
+#+STARTUP: showall
+
+* Overview
+
+In this exercise, you will extend the CSV report generator to add filtering capabilities. Currently, the program reads all expenses and generates a summary, but users often want to see expenses for specific categories only.
+
+* Task
+
+Create a new function =filter-by-category= in the =parser.lisp= file that will:
+
+1. Take two parameters:
+   - =parsed-data=: The data returned by =parse-csv=
+   - =category=: A string representing the category to filter by
+
+2. Return only the expenses matching the specified category
+
+Then, update the =csv-report= package to expose a new function =start-filtered= that:
+
+1. Takes two parameters:
+   - =file=: Path to the CSV file (optional, same as existing =start= function)
+   - =category=: Category to filter by
+
+2. Uses your new =filter-by-category= function to filter the expenses before generating the report
+
+* Expected Behavior
+
+When a user calls =(csv-report:start-filtered nil "Groceries")=, they should see a report showing only Groceries expenses.
+
+* Testing Your Solution
+
+I've provided a test file =exercise1-test.lisp= that will verify your solution works correctly.
+
+To run the test:
+
+1. First implement your solution
+2. Load the test file in the REPL:
+   #+begin_src lisp
+   (load "exercise1-test.lisp")
+   #+end_src
+
+3. Run the test function:
+   #+begin_src lisp
+   (exercise1-test:run-tests)
+   #+end_src
+
+4. If all tests pass, you'll see success messages. If not, you'll see details about what failed.
+
+* Tips
+
+- Look at the existing code in =parser.lisp= for examples of similar functions
+- Use the Common Lisp =remove-if-not= function to help with filtering
+- Make sure to export your new functions in =package.lisp=
+- You can test your function manually in the REPL before running the automated tests
+
+* Bonus Challenge
+
+If you complete the primary exercise successfully, try implementing a more advanced filter:
+
+- Create a function =filter-by-amount-range= that filters expenses within a minimum and maximum amount
+- Add a =start-amount-range= function to the main interface
+
+Good luck! 

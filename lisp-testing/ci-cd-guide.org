@@ -1,0 +1,315 @@
+#+TITLE: Continuous Integration and Deployment for Common Lisp
+#+AUTHOR: Your Name
+#+STARTUP: showall
+
+* Introduction to CI/CD for Common Lisp
+
+Continuous Integration (CI) and Continuous Deployment (CD) are development practices that help ensure code quality and streamline the delivery process. This guide explains how to set up CI/CD for Common Lisp projects.
+
+* What is CI/CD?
+
+** Continuous Integration (CI)
+- *Automatically build and test* code changes when they're pushed to version control
+- *Identify problems early* when they're easier to fix
+- *Ensure quality* by running tests on every change
+
+** Continuous Deployment (CD)
+- *Automatically deploy* successful builds to production or staging environments
+- *Reduce manual steps* in the release process
+- *Deliver features faster* with shorter feedback cycles
+
+* Setting Up CI/CD for Common Lisp Projects
+
+** Options for CI/CD Services
+
+1. *GitHub Actions* - Integrated with GitHub repositories (used in this tutorial)
+2. *GitLab CI* - Integrated with GitLab repositories
+3. *Travis CI* - Works with GitHub repositories
+4. *CircleCI* - Works with GitHub and Bitbucket
+
+** Key Components of a CI/CD Pipeline for Lisp
+
+1. *Environment Setup* - Install Lisp implementation and Quicklisp
+2. *Dependency Management* - Fetch and install dependencies
+3. *Build* - Compile the system
+4. *Test* - Run test suites
+5. *Coverage* - Measure test coverage
+6. *Documentation* - Generate and publish documentation
+7. *Deployment* - Deploy to target environments
+
+* GitHub Actions for Common Lisp
+
+GitHub Actions is a powerful CI/CD service integrated with GitHub. Let's look at how to set it up for a Common Lisp project.
+
+** Basic Workflow File
+
+A basic GitHub Actions workflow for Common Lisp might look like this:
+
+#+begin_src yaml
+name: Lisp CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Install SBCL
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y sbcl
+    
+    - name: Install Quicklisp
+      run: |
+        curl -O https://beta.quicklisp.org/quicklisp.lisp
+        sbcl --load quicklisp.lisp --eval '(quicklisp-quickstart:install)' --eval '(ql:add-to-init-file)' --eval '(quit)'
+    
+    - name: Install dependencies
+      run: |
+        mkdir -p ~/quicklisp/local-projects/
+        ln -s $GITHUB_WORKSPACE ~/quicklisp/local-projects/my-project
+        sbcl --load ~/quicklisp/setup.lisp --eval '(ql:quickload :fiveam)' --eval '(quit)'
+    
+    - name: Run tests
+      run: |
+        sbcl --load ~/quicklisp/setup.lisp \
+             --eval '(ql:quickload :my-project/tests)' \
+             --eval '(if (my-project/tests:run-all-tests)
+                         (uiop:quit 0)
+                         (uiop:quit 1))'
+#+end_src
+
+** How It Works
+
+1. The workflow runs on pushes to main/master and on pull requests
+2. It sets up an Ubuntu environment
+3. Installs SBCL (Steel Bank Common Lisp)
+4. Installs Quicklisp and dependencies including FiveAM for testing
+5. Links the project to Quicklisp's local-projects directory
+6. Runs the tests
+
+** Using SBCL for CI
+
+SBCL (Steel Bank Common Lisp) is a great choice for CI because it:
+
+- Is well-maintained and stable
+- Has good performance
+- Works well in headless environments
+- Has excellent ASDF and Quicklisp integration
+
+* Advanced CI/CD Features
+
+** Testing on Multiple Lisp Implementations
+
+To ensure compatibility, you might want to test on multiple Lisp implementations:
+
+#+begin_src yaml
+jobs:
+  test:
+    strategy:
+      matrix:
+        lisp: [sbcl, ccl, ecl, abcl]
+        include:
+          - lisp: sbcl
+            pkg: sbcl
+          - lisp: ccl
+            pkg: clozure-cl
+          - lisp: ecl
+            pkg: ecl
+          - lisp: abcl
+            pkg: abcl
+    
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Install Lisp implementation
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ${{ matrix.pkg }}
+    
+    # ... rest of workflow ...
+#+end_src
+
+** Code Coverage
+
+To track test coverage, you can use cl-coveralls:
+
+#+begin_src yaml
+- name: Run tests with coverage
+  run: |
+    ros -e '(ql:quickload :cl-coveralls)
+            (coveralls:with-coveralls ()
+              (ql:quickload :my-project/tests)
+              (my-project/tests:run-all-tests))'
+  env:
+    COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
+#+end_src
+
+** Documentation Generation
+
+You can automatically generate and publish documentation using tools like Codex:
+
+#+begin_src yaml
+- name: Generate documentation
+  run: |
+    ros -e '(ql:quickload :codex)
+            (codex:document :my-project)'
+
+- name: Deploy documentation
+  uses: peaceiris/actions-gh-pages@v3
+  with:
+    github_token: ${{ secrets.GITHUB_TOKEN }}
+    publish_dir: ./docs/build/my-project/html
+#+end_src
+
+* Tips for Effective CI/CD in Lisp Projects
+
+** Fast Feedback
+
+1. *Write fast tests* - Keep individual tests quick to run
+2. *Organize test suites* - Run critical tests first
+3. *Parallelize when possible* - Run independent test suites in parallel
+
+** Reliability
+
+1. *Control the environment* - Specify exact versions of dependencies
+2. *Handle non-determinism* - Be aware of random behavior in tests
+3. *Retry mechanisms* - Add retries for flaky network-dependent tests
+
+** Security
+
+1. *Manage secrets* - Use GitHub Secrets for sensitive information
+2. *Scan dependencies* - Check for security issues in dependencies
+3. *Limit permissions* - Use least-privilege principle for deployment
+
+* Real-World Example: Common Lisp Project Pipeline
+
+A mature Common Lisp project might have a pipeline like this:
+
+1. *Build and Unit Test* - Quick tests that run on every commit
+2. *Integration Test* - More comprehensive tests that might take longer
+3. *Documentation* - Generate and publish updated documentation
+4. *Staging Deploy* - Automatically deploy to a staging environment
+5. *Production Deploy* - Deploy to production after manual approval
+
+* Sample GitHub Actions Workflow Files
+
+** Basic Testing Workflow
+
+.github/workflows/test.yml:
+#+begin_src yaml
+name: Tests
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Install SBCL
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y sbcl
+    
+    - name: Install Quicklisp
+      run: |
+        curl -O https://beta.quicklisp.org/quicklisp.lisp
+        sbcl --load quicklisp.lisp --eval '(quicklisp-quickstart:install)' --eval '(ql:add-to-init-file)' --eval '(quit)'
+    
+    - name: Install dependencies
+      run: |
+        mkdir -p ~/quicklisp/local-projects/
+        ln -s $GITHUB_WORKSPACE ~/quicklisp/local-projects/my-project
+        sbcl --load ~/quicklisp/setup.lisp --eval '(ql:quickload :fiveam)' --eval '(quit)'
+    
+    - name: Run tests
+      run: |
+        sbcl --load ~/quicklisp/setup.lisp \
+             --eval '(ql:quickload :my-project/tests)' \
+             --eval '(if (my-project/tests:run-all-tests)
+                         (uiop:quit 0)
+                         (uiop:quit 1))'
+#+end_src
+
+** Documentation Workflow
+
+.github/workflows/docs.yml:
+#+begin_src yaml
+name: Documentation
+
+on:
+  push:
+    branches: [ main, master ]
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Install SBCL
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y sbcl
+    
+    - name: Install Quicklisp
+      run: |
+        curl -O https://beta.quicklisp.org/quicklisp.lisp
+        sbcl --load quicklisp.lisp --eval '(quicklisp-quickstart:install)' --eval '(ql:add-to-init-file)' --eval '(quit)'
+    
+    - name: Install dependencies
+      run: |
+        mkdir -p ~/quicklisp/local-projects/
+        ln -s $GITHUB_WORKSPACE ~/quicklisp/local-projects/my-project
+        sbcl --load ~/quicklisp/setup.lisp --eval '(ql:quickload :codex)' --eval '(quit)'
+    
+    - name: Generate documentation
+      run: |
+        sbcl --load ~/quicklisp/setup.lisp \
+             --eval '(ql:quickload :codex)' \
+             --eval '(codex:document :my-project)' \
+             --eval '(quit)'
+    
+    - name: Deploy documentation
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./docs/build/my-project/html
+#+end_src
+
+* Conclusion
+
+Setting up CI/CD for Common Lisp projects brings many benefits:
+
+1. *Increased confidence* in code changes
+2. *Faster feedback* on code quality
+3. *Automated repetitive tasks* like testing and deployment
+4. *Better collaboration* with team members
+5. *More reliable releases* with fewer manual steps
+
+While CI/CD setup requires some initial investment, the long-term benefits for code quality and development efficiency make it worthwhile for serious Common Lisp projects.
+
+* Resources and References
+
+- [[https://lispcookbook.github.io/cl-cookbook/testing.html][Common Lisp Cookbook: Testing]]
+- [[https://github.com/features/actions][GitHub Actions Documentation]]
+- [[https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-other-languages][GitHub Actions for Other Languages]]
+- [[https://sbcl.org/documentation.html][SBCL Documentation]]
+- [[https://common-lisp.net/project/fiveam/docs/][FiveAM Testing Framework]]
+- [[https://github.com/sharplispers/codex][Codex Documentation Generator]]
+- [[https://github.com/fukamachi/cl-coveralls][cl-coveralls]] 

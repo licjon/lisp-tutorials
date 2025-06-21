@@ -1,0 +1,136 @@
+#+TITLE: Understanding package.lisp in Common Lisp
+#+STARTUP: showall
+
+* What is package.lisp?
+
+The ~package.lisp~ file defines one or more *packages* in your Common Lisp project. Packages are like namespaces: they group symbols (functions, variables, macros, etc.) so that you avoid name clashes and control what's visible from where.
+
+This is one of the first files ASDF loads, and it should define all the packages your system needs.
+
+* Minimal Example
+
+#+begin_src lisp
+(defpackage :csv-report
+  (:use :cl)
+  (:export :start))
+
+(defpackage :csv-report/parser
+  (:use :cl :csv-report :cl-csv)
+  (:export :parse-csv :total-by-category))
+
+(defpackage :csv-report/formatter
+  (:use :cl :csv-report)
+  (:export :format-summary))
+#+end_src
+
+Each ~defpackage~ defines:
+- A *name* (like ~:csv-report/parser~)
+- Other packages it *uses*
+- The symbols it *exports* for use elsewhere
+
+* Why Does Common Lisp Use Packages?
+
+Because:
+- CL doesn't enforce file-level scoping — everything lives in the global symbol space unless you use packages.
+- Packages make your code modular, maintainable, and avoid name conflicts.
+
+If you skip defining a package, all your code goes into ~COMMON-LISP-USER~, which becomes messy fast.
+
+* Common Patterns
+
+** Main app package
+#+begin_src lisp
+(defpackage :my-app
+  (:use :cl)
+  (:export :start))
+#+end_src
+
+** Submodules
+#+begin_src lisp
+(defpackage :my-app/parser
+  (:use :cl :my-app)
+  (:export :parse-data))
+#+end_src
+
+** Third-party libs
+Add them in ~:use~ or access explicitly:
+#+begin_src lisp
+(:use :cl :cl-ppcre)
+;; or
+(cl-ppcre:split " " "hello world")
+#+end_src
+
+* Tips and Tricks
+
+** Tip: Keep one ~package.lisp~ to rule them all
+You can technically define packages inline in each file, but it's cleaner to centralize all ~defpackage~ forms in one file.
+
+** Tip: Export only what matters
+Exporting too many symbols clutters your interface and increases risk of conflicts.
+
+** Tip: Use ~IN-PACKAGE~ at the top of each file
+#+begin_src lisp
+(in-package :csv-report/formatter)
+#+end_src
+
+** Tip: Use full paths when unsure
+In the REPL, or for quick experimentation, you can always do:
+#+begin_src lisp
+(csv-report/formatter:format-summary ...)
+#+end_src
+
+* Working with Packages in Emacs/SLY
+
+** Inspecting Packages
+- ~sly-apropos~ (bound to ~C-c C-d a~) to search for symbols matching a pattern
+- ~sly-describe-package~ (bound to ~C-c C-d p~) to see package details
+- ~sly-who-calls~ (bound to ~C-c C-w c~) to find callers of a function
+
+** Navigating Between Packages
+- ~sly-mrepl-set-package~ (no standard keybinding) to change package in REPL
+- ~sly-cd~ (no standard keybinding) to change directory in REPL
+
+** Finding Exported Symbols
+- ~sly-apropos-package~ (bound to ~C-c C-d A~) to list all external symbols in a package
+- ~sly-edit-definition~ (bound to ~M-.~) to jump to symbol definition
+
+** Common REPL Investigations
+#+begin_src lisp
+;; List all exported symbols in a package
+(do-external-symbols (sym :csv-report/parser)
+  (format t "~&~S~%" sym))
+
+;; See if a symbol is exported from a package
+(find-symbol "PARSE-CSV" :csv-report/parser)
+#+end_src
+
+* Footguns and Gotchas
+
+- ❌ ~Forgetting to export~: You can't call a function from another package unless it's exported.
+- ❌ ~Package name typos~: Everything is case-insensitive *unless* you use double quotes. Avoid quoted symbols unless you know what you're doing.
+- ❌ ~Multiple definitions~: Only define a package once — don't spread ~defpackage~ across files.
+- ❌ ~Circular :use dependencies~: If ~A~ uses ~B~ and ~B~ uses ~A~, you'll get load-order problems. Prefer unidirectional use or ~:import-from~ instead.
+
+* Debugging Package Issues
+
+** Missing Symbols
+If you get an error like ~The variable FOO is unbound~:
+1. Check if it's exported from the package you're using
+2. Verify you're in the right package with ~(package-name *package*)~
+3. Try using the fully-qualified name (~some-package:foo~)
+
+** Reloading After Changes
+After modifying ~package.lisp~:
+1. Recompile with ~sly-compile-and-load-file~ (bound to ~C-c C-k~)
+2. If you've modified exports, reload the system with ~(ql:quickload :csv-report :force t)~
+3. Sometimes you may need to restart SLY with ~sly-restart-inferior-lisp~
+
+* Resources
+
+- CLHS: http://clhs.lisp.se/Body/11_ab.htm
+- "Packages" in Practical Common Lisp: https://gigamonkeys.com/book/programming-in-the-large-packages-and-symbols.html
+
+* Conclusion
+
+~package.lisp~ is your project's namespace blueprint. It doesn't do any computation — but without it, your project will be chaotic and hard to grow. Keep it clean and minimal, and you'll thank yourself later.
+

@@ -1,0 +1,86 @@
+#+TITLE: SLY REPL Terminal Equivalents
+#+STARTUP: showall
+
+* Terminal Commands vs. SLY REPL Equivalents
+
+This reference table shows common terminal commands and their equivalents in the SLY REPL, including both Lisp functions and SLY/Emacs commands where applicable.
+
+| Terminal Command      | Common Lisp Function                                                          | SLY/Emacs Command                        | Notes                                          |
+|-----------------------+-------------------------------------------------------------------------------+------------------------------------------+------------------------------------------------|
+| ~cd path~               | ~(uiop:chdir "/path/to/dir/")~                                                    | ~M-x sly-mrepl-set-directory~              | Changes the current working directory          |
+| ~pwd~                   | ~(uiop:getcwd)~                                                                 | -                                        | Displays the current working directory         |
+| ~ls~                    | ~(directory "*.*")~                                                               | -                                        | Lists files in the current directory           |
+| ~ls *.lisp~             | ~(directory "*.lisp")~                                                          | -                                        | Lists files matching a pattern                 |
+| ~mkdir dir~             | ~(ensure-directories-exist "dir/")~                                             | -                                        | Creates a directory                            |
+| ~rm file~               | ~(delete-file "file.txt")~                                                      | -                                        | Deletes a file                                 |
+| ~cp src dest~           | ~(uiop:copy-file "src.txt" "dest.txt")~                                         | -                                        | Copies a file                                  |
+| ~find . -name "*.lisp"~ | ~(directory "**/*.lisp")~                                                         | ~M-x find-name-dired~                      | Recursively finds files                        |
+| ~date~                  | ~(get-universal-time)~ or ~(get-decoded-time)~                                    | -                                        | Gets the current date/time                     |
+| ~clear~                 | ~(format t "~100%")~                                                             | ~M-x sly-mrepl-clear-repl~                 | Clears the screen/REPL                         |
+| ~man command~           | ~(documentation 'function 'function)~                                           | ~C-c C-d d~ (~sly-describe-symbol~)          | Gets documentation for a function              |
+| ~history~               | -                                                                             | ~M-p~ (~sly-mrepl-previous-input-or-button~) | Shows command history                          |
+| ~./script.sh~           | ~(load "script.lisp")~                                                          | ~C-c C-l~ (~sly-load-file~)                  | Loads and executes a Lisp file                 |
+| ~ps~                    | ~(room)~ or ~(room t)~                                                            | -                                        | Shows memory usage and instances               |
+| ~exit~ or ~logout~        | ~(quit)~ or ~(sb-ext:quit)~ or ~(uiop:quit)~                                        | ~M-x sly-quit~                             | Exits the Lisp process                         |
+| ~diff file1 file2~      | -                                                                             | ~M-x ediff~                                | Compares two files                             |
+| ~which command~         | ~(symbol-function 'function-name)~                                              | -                                        | Shows where a function is defined              |
+
+
+* SLY-Specific Terminal-like Commands
+
+| Function                  | SLY Command                        | Keybinding             | Description                             |
+|---------------------------+------------------------------------+------------------------+-----------------------------------------|
+| Change directory          | ~sly-mrepl-set-directory~            | No standard keybinding | Changes the REPL's working directory    |
+| Clear screen              | ~sly-mrepl-clear-repl~               | No standard keybinding | Clears the REPL buffer                  |
+| Command history           | ~sly-mrepl-previous-input-or-button~ | ~M-p~ in REPL            | Navigate to previous command in history |
+| Command history (forward) | ~sly-mrepl-next-input-or-button~     | ~M-n~ in REPL            | Navigate to next command in history     |
+| Find/edit file            | ~find-file~                          | ~C-x C-f~                | Open a file for editing                 |
+| View file read-only       | ~view-file~                          | No standard keybinding | View a file in read-only mode           |
+| Run Lisp file             | ~sly-load-file~                      | ~C-c C-l~                | Load and execute a Lisp file            |
+| Exit Lisp                 | ~sly-quit~                           | No standard keybinding | Quit the Lisp process                   |
+| Restart Lisp              | ~sly-restart-inferior-lisp~          | No standard keybinding | Restart the Lisp process                |
+
+* File Path Handling in Common Lisp
+
+Common Lisp provides robust path handling functions:
+
+#+begin_src lisp
+;; Joining paths (like os.path.join in Python)
+(merge-pathnames "subdir/file.txt" "/home/user/")
+
+;; Getting the directory part of a path
+(directory-namestring "/home/user/file.txt")  ; => "/home/user/"
+
+;; Getting just the filename
+(file-namestring "/home/user/file.txt")       ; => "file.txt"
+
+;; Absolute path resolution
+(truename "~/projects/")
+#+end_src
+
+* System & Process Management
+
+While different from terminal process management, Lisp offers system information:
+
+#+begin_src lisp
+;; Memory usage information
+(room)  ; Brief info
+(room t) ; Detailed info
+
+;; Run an external process
+(uiop:run-program "ls -la" :output :string)
+
+;; Run a program in the background
+(uiop:launch-program "firefox" :ignore-error-status t)
+#+end_src
+
+* Additional Resources
+
+- UIOP (Utilities for Implementation- and OS- Portability) Documentation: 
+  https://common-lisp.net/project/asdf/uiop.html
+
+- SLY Manual:
+  https://joaotavora.github.io/sly/
+
+- Common Lisp Cookbook - Files and Directories:
+  https://lispcookbook.github.io/cl-cookbook/files.html 

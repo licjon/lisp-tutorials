@@ -1,0 +1,244 @@
+#+TITLE: Understanding Testing in Common Lisp
+#+AUTHOR: Your Name
+#+STARTUP: showall
+
+* Introduction to Testing in Common Lisp
+
+Testing is a crucial part of software development, and Common Lisp offers several approaches to ensure your code works correctly. This document explains the testing approach used in the lisp-testing tutorial.
+
+* Why We Test
+
+1. *Catch bugs early* - Tests help identify problems before they reach production
+2. *Document behavior* - Tests serve as executable documentation of how code should behave
+3. *Enable refactoring* - With good test coverage, you can confidently change implementation details
+4. *Facilitate collaboration* - Tests help other developers understand how to use your code
+5. *Support continuous integration* - Automated tests enable CI/CD workflows
+
+* Testing in Common Lisp with FiveAM
+
+FiveAM is a popular testing framework for Common Lisp with the following features:
+
+- Test organization with suites and tests
+- Various assertion types for different testing needs
+- Detailed reporting of test results
+- Integration with ASDF for running tests as part of the build
+
+** Basic FiveAM Concepts
+
+*** Test Suites
+
+Test suites organize tests into logical groups:
+
+#+begin_src lisp
+(def-suite arithmetic-tests
+  :description "Tests for arithmetic operations")
+
+;; Suites can be nested
+(def-suite addition-tests
+  :description "Tests for addition function"
+  :in arithmetic-tests)
+#+end_src
+
+*** Tests
+
+Individual tests are defined with the ~test~ macro:
+
+#+begin_src lisp
+(test addition-of-positive-numbers
+  "Test that adding positive numbers works correctly."
+  (is (= 5 (add 2 3)))
+  (is (= 10 (add 7 3))))
+#+end_src
+
+The first argument is the test name, the second (optional) is a docstring, followed by the test body.
+
+*** Assertions
+
+FiveAM provides several assertion macros:
+
+- ~is~ - Basic assertion that evaluates to true
+- ~signals~ - Assert that an expression signals a specific condition
+- ~finishes~ - Assert that an expression completes without error
+- ~is-true~ - Assert that an expression is true
+- ~is-false~ - Assert that an expression is false
+- ~for-all~ - Property-based testing
+
+Examples:
+
+#+begin_src lisp
+(test division-tests
+  (is (= 4 (divide 12 3)) "12 divided by 3 should be 4")
+  (signals division-by-zero (divide 5 0))
+  (finishes (divide 10 2)))
+#+end_src
+
+*** Running Tests
+
+Tests can be run individually or as part of a suite. There are several ways to run tests, depending on your needs:
+
+1. From any package (recommended):
+   #+begin_src lisp
+   ;; Run all tests
+   (lisp-testing-tests:run-lisp-testing-tests)
+   
+   ;; Run a specific suite
+   (lisp-testing-tests:run-arithmetic-tests)
+   
+   ;; Run a single test
+   (fiveam:run! 'lisp-testing-tests::add-two-positive-numbers)
+   #+end_src
+
+2. From within the test package:
+   #+begin_src lisp
+   (in-package :lisp-testing-tests)
+   
+   ;; Run all tests
+   (run-lisp-testing-tests)
+   
+   ;; Run a specific suite
+   (run-arithmetic-tests)
+   
+   ;; Run a single test
+   (fiveam:run! 'add-two-positive-numbers)
+   #+end_src
+
+3. Using ASDF:
+   #+begin_src lisp
+   (asdf:test-system :lisp-testing)
+   #+end_src
+
+** Important Notes About Package Loading
+
+1. Always load systems in the correct order:
+   #+begin_src lisp
+   ;; First load the main system
+   (ql:quickload :lisp-testing)
+   
+   ;; Then load the test system
+   (ql:quickload :lisp-testing-tests)
+   #+end_src
+
+2. When in the `CL-USER` package, you must use package-qualified names:
+   #+begin_src lisp
+   ;; This will work
+   (lisp-testing-tests:run-lisp-testing-tests)
+   
+   ;; This will NOT work (undefined function)
+   (fiveam:run! 'arithmetic-tests)
+   #+end_src
+
+3. If you want to use FiveAM functions directly, you must use package qualifiers:
+   #+begin_src lisp
+   ;; This will work
+   (fiveam:run! 'lisp-testing-tests::arithmetic-tests)
+   
+   ;; This will NOT work (undefined function)
+   (fiveam:run! 'arithmetic-tests)
+   #+end_src
+
+* Test-Driven Development (TDD)
+
+This tutorial follows the test-driven development approach, which consists of:
+
+1. *Red* - Write a failing test for the functionality you want to implement
+2. *Green* - Implement the simplest code that makes the test pass
+3. *Refactor* - Clean up the code while keeping the tests passing
+
+** TDD Example: Adding a new calculator feature
+
+Let's say we want to add a function to calculate the cube of a number:
+
+*** Step 1: Write the test first
+
+#+begin_src lisp
+(test cube-function
+  "Test the cube function that calculates n^3."
+  (is (= 8 (lisp-testing:cube 2)))
+  (is (= 27 (lisp-testing:cube 3)))
+  (is (= -8 (lisp-testing:cube -2)))
+  (is (= 0 (lisp-testing:cube 0))))
+#+end_src
+
+*** Step 2: Run the test to see it fail
+
+#+begin_src lisp
+(fiveam:run! 'cube-function)
+;; This will fail because the function doesn't exist yet
+#+end_src
+
+*** Step 3: Implement the function
+
+#+begin_src lisp
+(defun cube (n)
+  "Calculate the cube (n^3) of a number."
+  (* n n n))
+#+end_src
+
+*** Step 4: Run the test again to see it pass
+
+#+begin_src lisp
+(fiveam:run! 'cube-function)
+;; This should now pass
+#+end_src
+
+*** Step 5: Refactor if needed
+
+In this simple case, no refactoring is needed. For more complex functions, you might want to optimize or clean up the code.
+
+* Testing Best Practices
+
+1. *Test one thing per test* - Each test should verify a single piece of functionality
+2. *Use descriptive test names* - Names should clearly indicate what's being tested
+3. *Include both positive and negative tests* - Test both correct and error cases
+4. *Test edge cases* - Include tests for boundary conditions (empty lists, zero, etc.)
+5. *Keep tests independent* - One test should not depend on the state from another test
+6. *Keep tests fast* - Slow tests discourage frequent testing
+
+* Integrating Tests with ASDF
+
+ASDF is the standard build system for Common Lisp. You can integrate tests to run as part of the build process:
+
+#+begin_src lisp
+(asdf:defsystem "my-system/tests"
+  :depends-on ("my-system" "fiveam")
+  :components ((:file "tests"))
+  :perform (test-op (o c) (symbol-call :my-system/tests :run-tests)))
+
+;; In the main system definition
+(asdf:defsystem "my-system"
+  ;; ...
+  :in-order-to ((test-op (test-op "my-system/tests"))))
+#+end_src
+
+With this setup, you can run tests with:
+
+#+begin_src lisp
+(asdf:test-system "my-system")
+#+end_src
+
+* Continuous Integration (CI) with GitHub Actions
+
+Continuous Integration ensures that your tests run automatically on code changes. The GitHub Actions workflow in this tutorial:
+
+1. Sets up a Lisp environment with SBCL
+2. Installs dependencies
+3. Runs all tests
+4. Fails the build if any tests fail
+
+This ensures that any pull request or commit to the main branch passes all tests.
+
+* Beyond Unit Testing
+
+While this tutorial focuses on unit testing with FiveAM, consider also:
+
+1. *Integration testing* - Test how components work together
+2. *System testing* - Test the entire application
+3. *Property-based testing* - Generate test cases to find edge cases you didn't consider
+4. *Mutation testing* - Introduce bugs to verify your tests catch them
+
+* Further Reading
+
+- [[https://common-lisp.net/project/fiveam/docs/index.html][FiveAM Documentation]]
+- [[https://lispcookbook.github.io/cl-cookbook/testing.html][Common Lisp Cookbook: Testing]]
+- [[https://en.wikipedia.org/wiki/Test-driven_development][Test-Driven Development]]
+- [[https://github.com/features/actions][GitHub Actions]] 

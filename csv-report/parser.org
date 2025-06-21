@@ -1,0 +1,291 @@
+#+TITLE: Understanding parser.lisp
+#+STARTUP: showall
+
+* The Role of Parser in Our Project
+
+The ~parser.lisp~ file has two main responsibilities:
+1. Reading raw CSV data from disk into memory (~parse-csv~)
+2. Processing that data into useful aggregates (~total-by-category~)
+
+This is a classic example of the "Extract, Transform, Load" pattern in data processing.
+
+* Key Functions
+
+** ~parse-csv~: Extract
+This reads the raw CSV file and converts it to a more usable structure.
+
+#+begin_src lisp
+(defun parse-csv (file-path)
+  "Read a CSV file and return the data as a list of rows (minus header).
+   Each row is represented as an association list with keys :date, :category, :amount, and :notes."
+  (handler-case
+      (let* ((all-rows (cl-csv:read-csv (probe-file file-path)))
+             (data-rows (rest all-rows))) ; Skip header row
+        
+        ;; Convert each row to a more semantic format with association lists
+        (mapcar #'row-to-alist data-rows))
+      
+    ;; Error handling for common scenarios
+    (file-error (e)
+      (format *error-output* "ERROR: Could not open file ~A: ~A~%" 
+              file-path e)
+      nil)
+    (error (e)
+      (format *error-output* "ERROR: Failed to parse CSV: ~A~%" e)
+      nil)))
+#+end_src
+
+** ~total-by-category~: Transform
+This aggregates the data by category, calculating sums for each one.
+
+#+begin_src lisp
+(defun total-by-category (parsed-data)
+  "Process parsed CSV data and return category totals as an alist.
+   The returned structure will be: ((\"Category1\" . amount1) (\"Category2\" . amount2) ...)"
+  (let ((totals (make-hash-table :test #'equal)))
+    
+    ;; Sum up amounts for each category
+    (dolist (row parsed-data)
+      (let ((category (cdr (assoc :category row)))
+            (amount (cdr (assoc :amount row))))
+        (incf (gethash category totals 0.0) amount)))
+    
+    ;; Convert hash table to association list and sort by category name
+    (sort (hash-table-to-alist totals) #'string< :key #'car)))
+#+end_src
+
+** ~test-parser~: Playground
+This function is for debugging and exploring in the REPL.
+
+#+begin_src lisp
+(defun test-parser (file-path)
+  "Test function to parse a CSV file and print the category totals."
+  (let* ((data (parse-csv file-path))
+         (totals (total-by-category data)))
+    (format t "~&Parsed ~D rows from ~A~%" (length data) file-path)
+    (format t "~&Category totals:~%")
+    (dolist (category-total totals)
+      (format t "  ~A: $~,2F~%" (car category-total) (cdr category-total)))
+    (format t "~&Grand total: $~,2F~%" (grand-total totals))
+    
+    ;; Return the data for further processing
+    (values data totals)))
+#+end_src
+
+* Running test-parser from the REPL
+
+The ~test-parser~ function is designed to be an interactive testing tool. Here's how to use it effectively:
+
+** Basic Usage
+
+1. Make sure your system is loaded:
+   #+begin_src lisp
+   (ql:quickload :csv-report)
+   #+end_src
+
+2. Call ~test-parser~ with a path to your CSV file:
+   #+begin_src lisp
+   (csv-report/parser:test-parser "expenses.csv")
+   #+end_src
+
+3. For absolute paths (more reliable):
+   #+begin_src lisp
+   (csv-report/parser:test-parser "/home/username/quicklisp/local-projects/project-tutorial/csv-report/expenses.csv")
+   #+end_src
+
+** Capturing Return Values
+
+The function returns two values: the parsed data and the category totals. You can capture them:
+
+#+begin_src lisp
+(multiple-value-bind (data totals) 
+    (csv-report/parser:test-parser "expenses.csv")
+  ;; Now you can examine or use these values
+  (format t "First expense: ~A~%" (first data))
+  (format t "Number of categories: ~A~%" (length totals)))
+#+end_src
+
+** Working with the Results
+
+Examining the returned data structure:
+
+#+begin_src lisp
+;; Look at the first row of data
+(first (csv-report/parser:parse-csv "expenses.csv"))
+;; => ((:DATE . "2025-04-01") (:CATEGORY . "Groceries") (:AMOUNT . 58.32) (:NOTES . "Farmers market"))
+
+;; Look at just the category totals
+(csv-report/parser:total-by-category 
+  (csv-report/parser:parse-csv "expenses.csv"))
+;; => (("Coffee" . 4.5) ("Groceries" . 101.22) ("Rent" . 1500.0) ("Utilities" . 120.45))
+#+end_src
+
+** Troubleshooting
+
+If you get file not found errors:
+
+1. Check your current directory:
+   #+begin_src lisp
+   (uiop:getcwd)
+   #+end_src
+
+2. Check if the file exists:
+   #+begin_src lisp
+   (probe-file "expenses.csv")
+   ;; or with absolute path
+   (probe-file "/path/to/expenses.csv")
+   #+end_src
+
+3. Change directory if needed:
+   #+begin_src lisp
+   (uiop:chdir "/home/username/quicklisp/local-projects/project-tutorial/csv-report/")
+   #+end_src
+
+4. Use system-relative paths for reliability:
+   #+begin_src lisp
+   (csv-report/parser:test-parser 
+     (merge-pathnames "expenses.csv" 
+                     (asdf:system-source-directory :csv-report)))
+   #+end_src
+
+* Lisp Development & Debugging Tips
+
+** REPL-Driven Development
+The ~test-parser~ function demonstrates a key Lisp philosophy: building functions that are easy to call from the REPL. This gives you immediate feedback and encourages exploration.
+
+In SLY:
+1. Compile the file (~sly-compile-and-load-file~, bound to ~C-c C-k~)
+2. Switch to REPL (~sly-mrepl~, bound to ~C-c C-z~)
+3. Call ~(csv-report/parser:test-parser "expenses.csv")~
+4. See results immediately
+
+** Incremental Testing
+When developing this file from scratch, you might:
+1. Write ~parse-csv~ first and test it
+2. Then write ~row-to-alist~ and test again
+3. Then implement ~total-by-category~ and test that
+
+At each step, you can explore the intermediate results in the REPL.
+
+** Dealing with Errors
+The ~handler-case~ block in ~parse-csv~ shows how to handle different error types:
+
+#+begin_src lisp
+(handler-case
+    ;; Code that might signal errors
+    (...)
+  
+  ;; Specific errors to catch
+  (file-error (e)
+    (format *error-output* "ERROR: Could not open file ~A: ~A~%" 
+            file-path e)
+    nil)
+  
+  ;; General fallback
+  (error (e)
+    (format *error-output* "ERROR: Failed to parse CSV: ~A~%" e)
+    nil))
+#+end_src
+
+This pattern ensures graceful failure even when files are missing or corrupt.
+
+** Debugging in the REPL
+In Lisp, the REPL is your main debugging tool. Try these techniques:
+
+*** Inspecting values
+#+begin_src lisp
+(inspect (parse-csv "expenses.csv"))
+#+end_src
+
+*** Tracing functions
+#+begin_src lisp
+(trace parse-csv total-by-category)  ;; Start tracing
+(csv-report/parser:test-parser "expenses.csv")  ;; See calls and returns
+(untrace)  ;; Stop tracing
+#+end_src
+
+*** Step debugging
+#+begin_src lisp
+(break "Breakpoint message")  ;; Add inside a function to pause execution
+#+end_src
+When hit, use these in the debugger:
+- ~:c~ to continue
+- ~:q~ to quit to toplevel
+- ~:b~ to show backtrace
+
+*** Interactive evaluation
+- ~sly-eval-last-expression~ (bound to ~C-x C-e~) - Evaluate the expression before point
+- ~sly-eval-defun~ (bound to ~C-M-x~) - Evaluate the top-level form containing point
+- ~sly-eval-region~ (bound to ~C-c C-r~) - Evaluate the selected region
+
+* Common Lisp Idioms Demonstrated
+
+** Association Lists
+We use alists (~((key1 . value1) (key2 . value2))~) for simple key-value data:
+
+#+begin_src lisp
+(list (cons :date date)
+      (cons :category category)
+      (cons :amount (parse-float amount))
+      (cons :notes notes))
+#+end_src
+
+** Hash Tables for Aggregation
+Hash tables are perfect for counting and summing:
+
+#+begin_src lisp
+(let ((totals (make-hash-table :test #'equal)))
+  (dolist (row parsed-data)
+    (let ((category (cdr (assoc :category row)))
+          (amount (cdr (assoc :amount row))))
+      (incf (gethash category totals 0.0) amount)))
+  ...)
+#+end_src
+
+** Multiple Return Values
+The ~test-parser~ function shows returning multiple values:
+
+#+begin_src lisp
+(values data totals)
+#+end_src
+
+In the REPL, you can capture these with ~multiple-value-bind~:
+
+#+begin_src lisp
+(multiple-value-bind (data totals)
+    (csv-report/parser:test-parser "expenses.csv")
+  (format t "First row: ~A~%" (first data)))
+#+end_src
+
+* Footguns and Gotchas
+
+** Forgetting Package Prefixes
+If you get ~SYMBOL-DOES-NOT-EXIST~ errors, check your package:
+- Correct: ~(csv-report/parser:parse-csv ...)~
+- Or switch packages: ~(in-package :csv-report/parser)~ then ~(parse-csv ...)~
+
+** Data Structure Mismatch
+If you get errors like ~The value NIL is not of type NUMBER~, it often means you're trying to do math with a non-number. Check your data structure assumptions.
+
+For example:
+- ~(cdr (assoc :amount row))~ expects ~:amount~ to exist in the row
+- ~(parse-float amount)~ assumes ~amount~ is a string that can be parsed
+
+** REPL State vs. File State
+Common mistake: making changes to a function but forgetting to recompile.
+- Edit the function
+- Recompile with ~sly-eval-defun~ (~C-M-x~) or ~sly-compile-and-load-file~ (~C-c C-k~)
+- Then test again
+
+** Package Exports
+If you can't access a function from another package, check:
+1. Is it exported in ~package.lisp~?
+2. Did you ~:use~ the package or use a full qualifier?
+
+* Next Steps
+
+Now that the parser is complete, we need to:
+1. Implement ~formatter.lisp~ to display the results nicely
+2. Fix ~main.lisp~ to use our actual file path "expenses.csv" instead of "data/example.csv"
+
+The parser handles the data extraction and aggregation, and the formatter will handle presentation. 

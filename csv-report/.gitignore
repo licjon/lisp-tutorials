@@ -1,0 +1,22 @@
+# Emacs backup and temp files
+*~
+\#*\#
+.\#*
+.*.~undo-tree~
+
+# Common Lisp compiled files
+*.fasl
+
+# Generated report files
+my-report.txt
+*.txt
+*.md
+
+# Other generated files that should be ignored
+*.out
+*.log
+*.tmp
+
+# OS specific files
+.DS_Store
+Thumbs.db 

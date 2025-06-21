@@ -1,0 +1,210 @@
+#+TITLE: Exercise 1: Adding Trigonometric Functions
+#+AUTHOR: Your Name
+#+STARTUP: showall
+
+* Overview
+
+In this exercise, you will extend the calculator library with trigonometric functions using test-driven development. You'll write tests first, then implement the functions to make the tests pass.
+
+* Task
+
+Create a new test file ~tests/trigonometry.lisp~ and implementation file ~src/trigonometry.lisp~ that will:
+
+1. Add the following trigonometric functions to the library:
+   - ~sin-degrees~ - Calculate sine based on angle in degrees
+   - ~cos-degrees~ - Calculate cosine based on angle in degrees
+   - ~tan-degrees~ - Calculate tangent based on angle in degrees
+
+2. Update the necessary package definitions and system files to include the new module.
+
+* Expected Behavior
+
+The new functions should convert degrees to radians before calculating results, as Common Lisp's built-in ~sin~, ~cos~, and ~tan~ functions expect angles in radians.
+
+For example:
+- ~(lisp-testing:sin-degrees 30)~ should return approximately 0.5
+- ~(lisp-testing:cos-degrees 60)~ should return approximately 0.5
+- ~(lisp-testing:tan-degrees 45)~ should return approximately 1.0
+
+* Testing Your Solution
+
+To test your solution:
+
+1. First, create the test file in ~tests/trigonometry.lisp~ using FiveAM to test the functions.
+2. Load the test file and run it - it should fail since you haven't implemented the functions yet.
+3. Implement the functions in ~src/trigonometry.lisp~.
+4. Update package definitions and system files to include the new module.
+5. Run the tests again to see if they pass.
+
+* Detailed Steps
+
+** Step 1: Create the test file
+
+Create ~tests/trigonometry.lisp~ with the following structure:
+
+#+begin_src lisp
+(in-package :lisp-testing-tests)
+
+;; Define a new test suite
+(def-suite trigonometry-tests
+  :description "Tests for trigonometric functions"
+  :in all-tests)
+
+(in-suite trigonometry-tests)
+
+;; Write tests for sin-degrees
+(test sin-degrees-test
+  "Test sine function with degrees"
+  ;; TODO: Write test assertions)
+
+;; Write tests for cos-degrees
+(test cos-degrees-test
+  "Test cosine function with degrees"
+  ;; TODO: Write test assertions)
+
+;; Write tests for tan-degrees
+(test tan-degrees-test
+  "Test tangent function with degrees"
+  ;; TODO: Write test assertions)
+
+;; Add a helper function to run just the trigonometry tests
+(defun run-trigonometry-tests ()
+  "Run tests for trigonometric functions."
+  (run! 'trigonometry-tests))
+#+end_src
+
+** Step 2: Update the test package
+
+Update ~tests/package.lisp~ to export the new function:
+
+#+begin_src lisp
+(defpackage :lisp-testing-tests
+  (:use :cl :fiveam)
+  (:documentation "Test package for the lisp-testing calculator library")
+  (:export 
+   ;; Main test functions
+   :run-all-tests
+   :run-arithmetic-tests
+   :run-statistics-tests
+   :run-special-tests
+   :run-trigonometry-tests  ; Add this line
+   
+   ;; Test suites
+   :run-lisp-testing-tests
+   :arithmetic-tests
+   :statistics-tests
+   :special-tests
+   :trigonometry-tests))   ; Add this line
+#+end_src
+
+** Step 3: Update the system definitions
+
+Update both system definition files to include the new files:
+
+1. Update ~lisp-testing.asd~ to include the new source file:
+   #+begin_src lisp
+   (asdf:defsystem "lisp-testing"
+     ;; ... existing content ...
+     :components ((:file "package")
+                  (:file "arithmetic")
+                  (:file "statistics")
+                  (:file "special")
+                  (:file "trigonometry")))  ; Add this line
+   #+end_src
+
+2. Update ~lisp-testing-tests.asd~ to include the new test file:
+   #+begin_src lisp
+   (asdf:defsystem "lisp-testing-tests"
+     ;; ... existing content ...
+     :components ((:file "package")
+                  (:file "main")
+                  (:file "arithmetic")
+                  (:file "statistics")
+                  (:file "special")
+                  (:file "trigonometry")))  ; Add this line
+   #+end_src
+
+** Step 4: Update the main package definition
+
+Update ~src/package.lisp~ to define and export the new functions:
+
+#+begin_src lisp
+(defpackage :lisp-testing
+  (:use :cl)
+  (:documentation "Main package for the lisp-testing calculator library")
+  (:export
+   ;; ... existing exports ...
+   
+   ;; Trigonometric functions
+   :sin-degrees
+   :cos-degrees
+   :tan-degrees))
+
+;; ... existing package definitions ...
+
+(defpackage :lisp-testing/trigonometry
+  (:use :cl :lisp-testing)
+  (:documentation "Trigonometric functions for the calculator")
+  (:export
+   :sin-degrees
+   :cos-degrees
+   :tan-degrees))
+#+end_src
+
+** Step 5: Implement the functionality
+
+Create ~src/trigonometry.lisp~ to implement the required functions.
+
+** Step 6: Run the tests
+
+After implementing the functions, you can run the tests in several ways:
+
+1. Run all tests:
+   #+begin_src lisp
+   ;; From any package (recommended)
+   (lisp-testing-tests:run-lisp-testing-tests)
+   
+   ;; Or using ASDF
+   (asdf:test-system :lisp-testing)
+   #+end_src
+
+2. Run just the trigonometry tests:
+   #+begin_src lisp
+   ;; From any package (recommended)
+   (lisp-testing-tests:run-trigonometry-tests)
+   
+   ;; Or using FiveAM directly
+   (fiveam:run! 'lisp-testing-tests::trigonometry-tests)
+   #+end_src
+
+3. Run a single test:
+   #+begin_src lisp
+   ;; From any package (recommended)
+   (fiveam:run! 'lisp-testing-tests::sin-degrees-test)
+   
+   ;; Or if you're in the lisp-testing-tests package
+   (in-package :lisp-testing-tests)
+   (fiveam:run! 'sin-degrees-test)
+   #+end_src
+
+Remember to load both systems before running tests:
+#+begin_src lisp
+(ql:quickload :lisp-testing)      ; First load the main system
+(ql:quickload :lisp-testing-tests) ; Then load the test system
+#+end_src
+
+* Tips
+
+- Remember to write your tests first and make sure they fail before implementing the functionality.
+- Use the ~float=~ helper function to test approximate equality for floating-point values.
+- Consider edge cases like testing common angles (0, 30, 45, 60, 90, 180, etc.).
+- Test that your functions handle negative angles correctly.
+
+* Bonus Challenge
+
+If you complete the primary exercise successfully, try implementing:
+
+- Arc functions (~asin-degrees~, ~acos-degrees~, ~atan-degrees~) that return results in degrees
+- Hyperbolic trigonometric functions (~sinh~, ~cosh~, ~tanh~)
+
+Good luck! 

@@ -1,0 +1,378 @@
+#+TITLE: Debugging in Common Lisp: A Practical Tutorial
+#+STARTUP: showall
+
+* Introduction to Common Lisp Debugging
+
+This tutorial will guide you through introducing a specific error in the CSV report project and then debugging it using various Common Lisp debugging tools. By deliberately creating and then fixing a bug, you'll learn practical debugging techniques in a realistic context.
+
+* Bug Scenario: Missing Symbol Export
+
+In this scenario, we'll introduce a common bug in Lisp systems: a missing symbol export. This type of error happens frequently when adding new functionality and forgetting to make it accessible to other packages.
+
+** Step 1: Introduce the Bug
+
+Let's introduce a new function in the ~parser.lisp~ file that we'll use but "forget" to export:
+
+1. Open ~parser.lisp~ and add this function at the end:
+
+#+begin_src lisp
+(defun summarize-by-date (parsed-data)
+  "Group expenses by date and calculate totals for each date."
+  (let ((totals (make-hash-table :test #'equal)))
+    ;; Sum up amounts for each date
+    (dolist (row parsed-data)
+      (let ((date (cdr (assoc :date row)))
+            (amount (cdr (assoc :amount row))))
+        (incf (gethash date totals 0.0) amount)))
+    
+    ;; Convert hash table to association list and sort chronologically
+    (sort (hash-table-to-alist totals) #'string< :key #'car)))
+#+end_src
+
+2. Now modify ~formatter.lisp~ to use this new function. Add this function at the end:
+
+#+begin_src lisp
+(defun format-date-summary (parsed-data)
+  "Format the parsed CSV data into a date-based summary."
+  (let* ((date-totals (csv-report/parser:summarize-by-date parsed-data))
+         (grand-total (csv-report/parser:grand-total date-totals)))
+    
+    (with-output-to-string (s)
+      ;; Header
+      (format s "Date Summary~%")
+      (format s "============~%~%")
+      
+      ;; Date breakdown
+      (dolist (date-pair date-totals)
+        (destructuring-bind (date . amount) date-pair
+          (format s "~A: $~,2F~%" date amount)))
+      
+      ;; Total
+      (format s "~%Total spent: $~,2F~%" grand-total))))
+#+end_src
+
+3. Save both files
+
+** Step 2: Try to Use the New Function
+
+Now let's try to use our new function:
+
+1. Compile and load the files:
+   #+begin_src lisp
+   (ql:quickload :csv-report :force t)
+   #+end_src
+
+2. You'll encounter an error in both your REPL and a debugger window. The REPL will show something like this:
+
+   #+begin_src text
+   > (ql:quickload :csv-report :force t)
+   To load "csv-report":
+     Load 1 ASDF system:
+       csv-report
+   ; Loading "csv-report"
+   ; 
+   ; caught ERROR:
+   ;   READ error during COMPILE-FILE:
+   ;   
+   ;     The symbol "SUMMARIZE-BY-DATE" is not external in the CSV-REPORT/PARSER package.
+   ;   
+   ;       Line: 67, Column: 58, File-Position: 2709
+   ;   
+   ;       Stream: #<SB-INT:FORM-TRACKING-STREAM for "file /home/jh/quicklisp/local-projects/project-tutorial/csv-report/formatter.lisp" {100AB1B203}>
+   ; Debugger entered on #<UIOP/LISP-BUILD:COMPILE-FILE-ERROR {100ADFC8C3}>
+   #+end_src
+
+   Simultaneously, a SLY debugger window will open with options to retry or accept:
+
+   #+begin_src text
+   COMPILE-FILE-ERROR while
+   compiling #<CL-SOURCE-FILE "csv-report" "formatter">
+      [Condition of type UIOP/LISP-BUILD:COMPILE-FILE-ERROR]
+
+   Restarts:
+    0: [RETRY] Retry compiling #<CL-SOURCE-FILE "csv-report" "formatter">.
+    1: [ACCEPT] Continue, treating compiling #<CL-SOURCE-FILE "csv-report" "formatter"> as having been successful.
+    2: [RETRY] Retry ASDF operation.
+    3: [CLEAR-CONFIGURATION-AND-RETRY] Retry ASDF operation after resetting the configuration.
+    ...
+   #+end_src
+
+   This is very informative! The REPL output shows exactly what happened:
+   
+   1. The error happened during compilation (not at runtime)
+   2. The specific symbol that couldn't be found ("SUMMARIZE-BY-DATE")
+   3. The package it was looked for in ("CSV-REPORT/PARSER")
+   4. The exact location in formatter.lisp (Line: 67, Column: 58)
+
+   This is the typical way package export errors appear in SBCL - at compile time rather than runtime.
+
+** Step 3: Investigate the Error
+
+Let's understand what's happening:
+
+1. Check what functions are exported from the parser package:
+   #+begin_src lisp
+   (do-external-symbols (sym :csv-report/parser)
+     (format t "~S~%" sym))
+   #+end_src
+
+   Notice that ~SUMMARIZE-BY-DATE~ is not in the list.
+
+2. Check if the function exists but isn't exported:
+   #+begin_src lisp
+   (find-symbol "SUMMARIZE-BY-DATE" :csv-report/parser)
+   #+end_src
+
+   This should return the symbol and ~:INTERNAL~, showing that the function exists but is not exported.
+
+** Step 4: Use the Debugger to Explore
+
+When you hit the error, SLY will open a debugger window. The exact appearance depends on whether you hit a compile-time or runtime error.
+
+*** For Compile-Time Errors (COMPILE-FILE-ERROR)
+
+If you see a debugger window with "COMPILE-FILE-ERROR" and a series of restarts like:
+   
+#+begin_src text
+Restarts:
+ 0: [RETRY] Retry compiling #<CL-SOURCE-FILE "csv-report" "formatter">.
+ 1: [ACCEPT] Continue, treating compiling #<CL-SOURCE-FILE "csv-report" "formatter"> as having been successful.
+ 2: [RETRY] Retry ASDF operation.
+ // ... more restarts ...
+#+end_src
+
+You can:
+
+1. Examine the full backtrace by clicking "more" or scrolling through.
+
+2. Look for the actual cause, which might be buried in the compilation output. You can try scrolling back in your REPL to see the detailed compilation messages, which should mention the missing symbol.
+
+3. Choose restart 1 [ACCEPT] to continue anyway, which will let you investigate further in the REPL.
+
+*** Alternative Debugging Approaches
+
+Regardless of which error you encountered, these approaches will help investigate:
+
+1. Check what functions are exported from the parser package:
+   #+begin_src lisp
+   (do-external-symbols (sym :csv-report/parser)
+     (format t "~S~%" sym))
+   #+end_src
+
+2. Check if the symbol exists but isn't exported:
+   #+begin_src lisp
+   (let ((sym (find-symbol "SUMMARIZE-BY-DATE" :csv-report/parser)))
+     (format t "Found symbol: ~S~%" sym)
+     (format t "Symbol status: ~A~%" 
+             (if sym
+                 (multiple-value-bind (s status) 
+                     (find-symbol "SUMMARIZE-BY-DATE" :csv-report/parser)
+                   (declare (ignore s))
+                   status)
+                 "not found")))
+   #+end_src
+
+3. Try to use the symbol with its internal name (after choosing the [ACCEPT] restart if needed):
+   #+begin_src lisp
+   ;; First, create some test data to use
+   (defparameter *test-data* (csv-report/parser:parse-csv "expenses.csv"))
+
+   ;; Then try to access the internal symbol
+   (csv-report/parser::summarize-by-date *test-data*)
+   #+end_src
+
+   Note the double colon (::) which accesses internal symbols. This is not recommended for production code, but it's useful for debugging!
+
+** Step 5: Fix the Bug
+
+Now that we understand the problem, let's fix it:
+
+1. Open ~package.lisp~ and update the ~csv-report/parser~ package definition:
+
+#+begin_src lisp
+(defpackage :csv-report/parser
+  (:use :cl :csv-report :cl-csv)
+  (:export :parse-csv :total-by-category :grand-total :summarize-by-date))
+#+end_src
+
+2. We also need to export the new function from the formatter package. Add it to the exports in the ~csv-report/formatter~ package definition:
+
+#+begin_src lisp
+(defpackage :csv-report/formatter
+  (:use :cl :csv-report)
+  (:export :format-report :save-report :format-date-summary))
+#+end_src
+
+3. Reload the system:
+   #+begin_src lisp
+   (ql:quickload :csv-report :force t)
+   #+end_src
+
+4. Try using the function again - it should work now!
+   #+begin_src lisp
+   (let ((data (csv-report/parser:parse-csv "expenses.csv")))
+     (format t "~A" (csv-report/formatter:format-date-summary data)))
+   #+end_src
+
+This demonstrates a common debugging scenario in Lisp: when adding new functionality, you need to ensure that:
+1. Functions are properly exported from their defining packages
+2. Functions can access all the symbols they need from other packages
+3. All related packages are updated consistently
+
+* Common Debugging Techniques in Lisp
+
+** Using TRACE for Function Call Tracking
+
+~trace~ is a powerful tool that shows function calls and returns:
+
+#+begin_src lisp
+;; Trace individual functions
+(trace csv-report/parser:summarize-by-date)
+(trace csv-report/parser:total-by-category)
+
+;; Try the function again
+(let ((data (csv-report/parser:parse-csv "expenses.csv")))
+  (csv-report/formatter:format-date-summary data))
+
+;; When finished, untrace everything
+(untrace)
+#+end_src
+
+** Using BREAK for Manual Breakpoints
+
+You can insert breakpoints in your code:
+
+#+begin_src lisp
+;; Add this line to your function to create a breakpoint
+(defun summarize-by-date (parsed-data)
+  (break "Entered summarize-by-date with ~A rows" (length parsed-data))
+  ;; Rest of the function...
+  )
+#+end_src
+
+** Inspecting Values
+
+#+begin_src lisp
+;; In the debugger or REPL
+(inspect parsed-data)
+(inspect (car parsed-data))
+#+end_src
+
+** Stepping Through Code Execution
+
+If using SLY/SLIME's built-in debugger:
+
+1. When in the debugger after hitting an error:
+   - Type ~:step~ to step into function calls
+   - Type ~:next~ to execute the current form and stop at the next one
+   - Type ~:out~ to run until exiting the current function
+
+** Debugging REPL vs. System Loading
+
+For debugging system loading issues:
+
+#+begin_src lisp
+;; Load with verbose output
+(asdf:load-system "csv-report" :verbose t)
+
+;; Check if a system exists
+(asdf:find-system "csv-report" nil)
+#+end_src
+
+* Common Lisp Debugging Concepts
+
+** Package Visibility Errors
+
+- *External symbols* (single colon ~:~): Exported and accessible to other packages
+- *Internal symbols* (double colon ~::~): Only accessible within the defining package
+- *Inherited symbols*: Available due to ~(:use package)~ in package definition
+
+** Error Types and Conditions
+
+Understanding error types helps with debugging:
+
+- ~UNDEFINED-FUNCTION~: Function doesn't exist or isn't accessible
+- ~UNBOUND-VARIABLE~: Variable doesn't exist or isn't in scope
+- ~TYPE-ERROR~: Operation on value of wrong type
+- ~PACKAGE-ERROR~: Package-related issues (like our missing export)
+
+** Restarts System
+
+Common Lisp's condition system offers restarts - ways to recover from errors:
+
+1. In the debugger, type ~:restart~ to see available recovery options
+2. Choose a restart by number (~0~, ~1~, etc.)
+3. Some common restarts:
+   - Skip the form and continue
+   - Retry with different arguments
+   - Return a specific value
+
+* Advanced Debugging Techniques
+
+** Logging
+
+Create a simple logging function for tracing without the debugger:
+
+#+begin_src lisp
+(defvar *debug-level* 2)  ; 0=none, 1=error, 2=info, 3=debug
+
+(defun log-msg (level format-string &rest args)
+  (when (<= level *debug-level*)
+    (apply #'format *error-output* 
+           (concatenate 'string "~&[~A] " format-string "~%")
+           (case level
+             (1 "ERROR")
+             (2 "INFO ")
+             (3 "DEBUG")
+             (t "OTHER"))
+           args)))
+#+end_src
+
+** Muffling or Capturing Warnings
+
+When debugging, sometimes you want to capture rather than display warnings:
+
+#+begin_src lisp
+(let ((*standard-output* (make-string-output-stream))
+      (warnings '()))
+  (handler-bind ((warning (lambda (w)
+                           (push w warnings)
+                           (muffle-warning))))
+    ;; Code that might produce warnings
+    )
+  ;; Now examine collected warnings
+  warnings)
+#+end_src
+
+* Debugging Exercises
+
+Try these additional debugging exercises:
+
+1. Create a type error by passing a string where a number is expected
+2. Create an unbound variable error by referencing a variable that doesn't exist
+3. Add logging to parser.lisp to track data transformation steps
+4. Add assertions to verify data integrity at key points
+
+* Debugging Checklist
+
+When you encounter an error:
+
+1. Read the error message carefully
+2. Check the backtrace to see the call chain
+3. Inspect the relevant variables
+4. Use ~trace~ to follow function execution
+5. Add ~break~ points at strategic locations
+6. Check package exports if getting symbol errors
+7. Verify parameter types if getting type errors
+
+* Conclusion
+
+Debugging is a core skill in Lisp development. By understanding how to read error messages, use the debugger, and employ tools like ~trace~ and ~break~, you can quickly identify and fix issues in your code.
+
+The interactive nature of Lisp development is one of its greatest strengths - embrace the REPL-based debugging workflow and you'll become much more efficient at resolving problems.
+
+* Additional Resources
+
+- [[https://lispcookbook.github.io/cl-cookbook/debugging.html][Common Lisp Cookbook: Debugging]]
+- [[https://www.cs.cmu.edu/Groups/AI/html/cltl/clm/node192.html][Common Lisp the Language: Debugging]]
+- [[https://www.gigamonkeys.com/book/beyond-exception-handling-conditions-and-restarts.html][Practical Common Lisp: Conditions and Restarts]] 

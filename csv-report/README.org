@@ -1,0 +1,239 @@
+#+TITLE: Common Lisp Tutorial Project: CSV Report Generator
+#+AUTHOR: Your Name
+#+STARTUP: showall
+
+* Overview
+
+This project is a self-contained tutorial to help me remember how to:
+- Start a Common Lisp project from scratch
+- Structure code using ~.asd~ files, ~package.lisp~, and modules
+- Use Quicklisp libraries
+- Work with files and external data (CSV)
+- Develop and test iteratively using Emacs and SLY
+
+I always forget the workflow, so this is my personal reference for getting up and running fast.
+
+* Project: CSV Report Generator
+
+The goal is to build a simple, modular utility that reads a CSV file of expenses, processes it, and outputs a nicely formatted summary report.
+
+This is a practical tool that's small enough to understand fully but big enough to justify organizing code properly.
+
+** Input
+A file called ~expenses.csv~ like this:
+
+#+begin_example
+Date,Category,Amount,Notes
+2025-04-01,Groceries,58.32,Farmers market
+2025-04-03,Utilities,120.45,Electricity bill
+2025-04-04,Coffee,4.50,Latte
+2025-04-07,Rent,1500.00,Monthly rent
+2025-04-10,Groceries,42.90,Grocery store
+#+end_example
+
+** Output
+A plain text or markdown summary like this:
+
+#+begin_example
+Category Totals
+===============
+
+Rent: $1500.00
+Utilities: $120.45
+Groceries: $101.22
+Coffee: $4.50
+
+Total spent: $1726.17
+#+end_example
+
+* What This Tutorial Covers
+
+- Creating a new project with Quicklisp
+- Writing a ~.asd~ system definition
+- Defining packages in ~package.lisp~
+- Separating code into logical modules
+- Using third-party libraries like ~cl-csv~ and ~str~
+- Running, editing, and reloading code from SLY
+- Iterative development flow (read -> process -> print)
+
+* Project Structure
+
+#+begin_example
+csv-report/
+├── README.org
+├── csv-report.asd
+├── package.lisp
+├── main.lisp          ;; Entry point
+├── parser.lisp        ;; CSV reading and processing
+└── formatter.lisp     ;; Report generation
+#+end_example
+
+* Future Ideas
+- Add CLI arguments (e.g. filter by category or date)
+- Support output to markdown files
+- Allow custom CSV input
+- Add unit tests with ~fiveam~
+
+* Requirements
+- Quicklisp
+- Emacs + SLY
+- ~cl-csv~, ~str~ (Quicklisp libraries)
+
+* Getting Started
+
+1. Clone or create this project
+2. Open Emacs and start SLY with ~M-x sly~
+3. Load the system in the REPL:
+   #+begin_src lisp
+   (ql:quickload :csv-report)
+   #+end_src
+   
+   You can also use ~M-x sly-quickload~ and enter "csv-report"
+   
+4. Evaluate ~main:start~ to run:
+   #+begin_src lisp
+   (csv-report:start)
+   #+end_src
+
+5. Edit modules, reload, and repeat
+
+* Development Workflow
+
+** Editing Files
+1. Open project files with ~find-file~ (bound to ~C-x C-f~)
+2. Make your changes
+
+** Compiling and Testing
+1. Compile a single function with ~sly-eval-defun~ (bound to ~C-M-x~)
+2. Compile entire buffer with ~sly-compile-and-load-file~ (bound to ~C-c C-k~)
+3. Switch to REPL with ~sly-mrepl~ (bound to ~C-c C-z~)
+4. Test your changes
+
+** Navigation
+1. Find function definitions with ~sly-edit-definition~ (bound to ~M-.~)
+2. Return from definition with ~sly-pop-find-definition-stack~ (bound to ~M-,~)
+3. Search for symbols with ~sly-apropos~ (bound to ~C-c C-d a~)
+
+** Documentation
+1. View function documentation with ~sly-describe-symbol~ (bound to ~C-c C-d d~)
+2. View additional help resources with ~sly-documentation-lookup~ (bound to ~C-c C-d h~)
+
+* Important SLY Tips for Smooth Operation
+
+** Managing Working Directories
+The REPL's working directory affects how relative paths work. To check and change it:
+
+1. Check current directory:
+   #+begin_src lisp
+   (uiop:getcwd)
+   #+end_src
+
+2. Change directory in SLY:
+   - ~sly-mrepl-set-directory~ (no standard keybinding) - Change the REPL directory
+   - From REPL: ~M-x sly-mrepl-set-directory~ and enter the path to your project
+
+3. Change directory in Lisp:
+   #+begin_src lisp
+   (uiop:chdir "/path/to/your/project/")
+   #+end_src
+
+4. Use absolute paths for reliability:
+   #+begin_src lisp
+   (csv-report:start "/absolute/path/to/expenses.csv")
+   #+end_src
+
+** Reloading After Changes
+1. Single file after editing:
+   - ~sly-compile-and-load-file~ (bound to ~C-c C-k~)
+
+2. Entire system with dependencies:
+   #+begin_src lisp
+   (ql:quickload :csv-report :force t)
+   #+end_src
+
+3. Clean reloading if changes aren't taking effect:
+   - Restart Lisp: ~M-x sly-restart-inferior-lisp~
+   - Then reload the system: ~(ql:quickload :csv-report)~
+
+** Common Issues and Solutions
+
+*** Changes Not Taking Effect:
+- Make sure the file is saved
+- Use ~:force t~ when reloading the system
+- Check compilation for errors in the ~*sly-compilation*~ buffer
+- Verify package exports if using functions across packages
+
+*** File Not Found Errors:
+- Verify working directory with ~(uiop:getcwd)~
+- Use absolute paths or system-relative paths
+- Check that the file exists with ~(probe-file "path/to/file")~
+
+*** Package Issues:
+- Make sure symbols are exported in ~package.lisp~
+- Recompile ~package.lisp~ first with ~C-c C-k~
+- Use fully qualified names (~csv-report/parser:function-name~)
+
+*** Finding Quicklisp Location:
+- Check the Quicklisp home directory:
+  #+begin_src lisp
+  (ql:*quicklisp-home*)
+  #+end_src
+- Find your local-projects directory:
+  #+begin_src lisp
+  (merge-pathnames "local-projects/" (ql:*quicklisp-home*))
+  #+end_src
+
+** REPL Tips
+- Clear the REPL: ~M-x sly-mrepl-clear-repl~
+- Cycle through history: ~M-p~ and ~M-n~ in the REPL
+- Clear all REPL variables: ~(unintern '*) (unintern '+) (unintern '-)~
+- Get history of values: ~*~ (last value), ~**~ (second last), ~***~ (third last)
+
+* Contributing to This Tutorial
+
+This tutorial is designed to be a living document that improves over time. Your contributions and suggestions are welcome!
+
+** Suggesting Changes
+
+If you find errors, have suggestions for improvements, or want to add new content:
+
+1. **Via GitHub Issues**:
+   - Visit the project repository on GitHub: [[https://github.com/YOUR-USERNAME/csv-report]]
+   - Click on "Issues" and then "New Issue"
+   - Describe your suggestion or the problem you found
+   - Include specific file names and line numbers if applicable
+
+2. **Via Pull Requests**:
+   - Fork the repository on GitHub
+   - Make your changes in your forked copy
+   - Submit a Pull Request with a clear description of what you changed and why
+   - Include before/after examples if possible
+
+3. **For Major Enhancements**:
+   - Open an Issue first to discuss the proposed changes
+   - This allows for discussion before you invest time in implementation
+
+** What Makes a Good Contribution
+
+The best contributions to this tutorial:
+
+- Fix technical errors or inaccuracies
+- Improve explanations where they're unclear
+- Add useful tips that would have saved you time
+- Provide additional examples for complex concepts
+- Update content to reflect current Common Lisp best practices
+- Enhance accessibility for newcomers to Common Lisp
+
+** Code Style
+
+When contributing code examples, please follow these guidelines:
+
+- Use consistent indentation (2 spaces per level is standard for Lisp)
+- Include helpful comments for non-obvious parts
+- Follow the existing naming conventions
+- Keep examples simple and focused on illustrating one concept at a time
+
+Thank you for helping improve this Common Lisp learning resource!
+
+* License
+ Whatever you want — it's your personal playground.

@@ -1,0 +1,128 @@
+#+TITLE: Understanding .asd Files in Common Lisp
+#+STARTUP: showall
+
+* What is an .asd File?
+
+An ~.asd~ file defines a Common Lisp *system* — a collection of source files and dependencies. It's used by ASDF (Another System Definition Facility), the de facto build system and dependency manager in the Common Lisp ecosystem.
+
+Think of it as the Common Lisp equivalent of:
+- ~package.json~ in Node.js
+- ~pyproject.toml~ in Python
+- ~Cargo.toml~ in Rust
+
+* Why Does Lisp Use .asd Files?
+
+Common Lisp doesn't have a standard project layout or a built-in package manager. ASDF fills that gap by:
+- Declaring what files belong to a system
+- Describing dependencies
+- Letting tools like Quicklisp or SLY load your system with one command
+
+* Minimal .asd Example
+
+#+begin_src lisp
+(asdf:defsystem "csv-report"
+  :description "A simple CSV report generator."
+  :author "Your Name"
+  :license "MIT"
+  :version "0.1.0"
+  :depends-on ("cl-csv" "str")
+  :serial t
+  :components ((:file "package")
+               (:file "parser")
+               (:file "formatter")
+               (:file "main")))
+#+end_src
+
+* Key Fields Explained
+
+| Field          | What it does                                                 |
+|----------------+--------------------------------------------------------------|
+| ~defsystem~      | Defines the system name — must match the filename.           |
+| ~:description~   | Optional string for documentation.                           |
+| ~:author~        | Optional — for metadata.                                     |
+| ~:license~       | Optional but encouraged.                                     |
+| ~:version~       | Helps with compatibility if versioning matters to you.       |
+| ~:depends-on~    | List of system dependencies (must be in Quicklisp or local). |
+| ~:components~    | Ordered list of source files (see tips below).               |
+| ~:serial t~      | Ensures the files are loaded in order, top to bottom.        |
+
+* Tips and Tricks
+
+** Tip: Use ~:serial t~ when starting out
+It guarantees loading order and helps avoid dependency issues between files. Later, you can remove it for more parallel loading.
+
+** Tip: Keep ~package.lisp~ first
+Your packages must be defined before any code that uses them.
+
+** Tip: You can use subdirectories
+#+begin_src lisp
+(:file "src/utils/logger")  ;; loads src/utils/logger.lisp
+#+end_src
+
+** Tip: Use SLY commands for system management
+- ~sly-load-system~ (no standard keybinding) - Load a system interactively
+- ~sly-quickload~ (no standard keybinding) - Quickload a system interactively
+- ~sly-compile-and-load-file~ (bound to ~C-c C-k~) - Compile an ASDF file
+- ~sly-asdf-system-apropos~ (no standard keybinding) - Search for ASDF systems
+
+* Loading Systems in SLY
+
+** Via Interactive Commands
+1. ~M-x sly-load-system~ and enter system name 
+2. ~M-x sly-quickload~ and enter system name
+
+** Via REPL
+#+begin_src lisp
+;; Standard approach
+(asdf:load-system :csv-report)
+
+;; Using Quicklisp (handles dependencies)
+(ql:quickload :csv-report)
+
+;; Force reload (after changes)
+(ql:quickload :csv-report :force t)
+#+end_src
+
+** Checking System Information
+#+begin_src lisp
+;; List all systems
+(asdf:registered-systems)
+
+;; Check if a system exists
+(asdf:find-system :csv-report nil)
+#+end_src
+
+* Footguns and Gotchas
+
+- ❌ ~System name mismatch~: The name in ~defsystem~ must match the file name, e.g., ~csv-report.asd~ must define ~"csv-report"~.
+- ❌ ~File not found~: ASDF expects file names *without* extensions. If you list ~(:file "main")~, it will load ~main.lisp~, not ~main.cl~ or ~main.txt~.
+- ❌ ~Package order problems~: Always load the file that defines packages first (~package.lisp~).
+- ❌ ~Quicklisp dependency not installed~: Use ~(ql:quickload "cl-csv")~ before you can ~:depends-on~ it.
+
+* Debugging System Loading Problems
+
+** "Cannot find system" errors
+1. Check your ~quicklisp/local-projects/~ directory path
+2. Make sure the .asd file name matches the system name
+3. Try ~(ql:register-local-projects)~ to refresh project registrations
+
+** "File not found" errors
+1. Check the file paths in your ~:components~ list
+2. Remember ASDF automatically adds .lisp extension
+3. Ensure the file exists with ~(probe-file "path/to/file.lisp")~
+
+* Advanced Features (Skip for Now)
+You can define test systems, use multiple packages, define modules, or even compile static binaries. But the basics above will take you very far.
+
+* Resources
+
+- ASDF Manual: https://common-lisp.net/project/asdf/asdf.html
+- Quicklisp: https://www.quicklisp.org/
+- Practical Common Lisp (Chapter 23): https://gigamonkeys.com/book/
+
+* Conclusion
+
+The ~.asd~ file is a small but powerful tool that makes your Common Lisp project manageable, shareable, and hackable in the REPL.
+
+Once you have one set up, everything else — from libraries to debugging to deployment — gets easier.
+
