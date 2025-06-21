@@ -1,0 +1,321 @@
+#+TITLE: CLOS Web Tutorial - Exercise Guide
+#+AUTHOR: Your Name
+#+STARTUP: showall
+
+* Getting Started with CLOS Web Tutorial
+
+This guide will walk you through building a task management web application using Common Lisp Object System (CLOS). You'll learn CLOS concepts progressively while building a real web application.
+
+* Prerequisites
+
+Before starting this tutorial, you should have:
+
+- Basic Common Lisp knowledge (syntax, functions, packages)
+- Quicklisp installed and configured
+- Emacs + SLY development environment
+- SBCL or another Common Lisp implementation
+
+* Project Structure
+
+The tutorial is organized into progressive exercises:
+
+** Phase 1: CLOS Fundamentals (Exercises 1-10)**
+- Basic class definitions and inheritance
+- Generic functions and methods
+- Polymorphic behavior
+- Method combinations
+- Object persistence
+
+** Phase 2: Web Integration (Exercises 11-20)**
+- Web server setup with Hunchentoot
+- HTML generation with CL-WHO
+- Form handling and validation
+- Session management
+
+* How to Work Through the Exercises
+
+1. **Read the exercise description** in the source files
+2. **Implement the TODO items** in each exercise
+3. **Test your implementation** using the provided test functions
+4. **Move to the next exercise** when the current one works
+
+* Exercise 1: Basic Task Class
+
+**Goal**: Define a basic TASK class with slots for task properties.
+
+**What to do**:
+1. Open `src/models.lisp`
+2. Find Exercise 1 section
+3. Define a TASK class with these slots:
+   - id: unique identifier (auto-generated)
+   - title: task title (required)
+   - description: task description (optional)
+   - status: current status (:pending, :in-progress, :completed)
+   - created-at: timestamp when created
+
+**Example**:
+#+begin_src lisp
+(defclass task ()
+  ((id :initform (generate-id) :accessor task-id)
+   (title :initarg :title :accessor task-title)
+   (description :initarg :description :accessor task-description)
+   (status :initform :pending :accessor task-status)
+   (created-at :initform (get-universal-time) :accessor task-created-at)))
+#+end_src
+
+**Test it**:
+#+begin_src lisp
+(ql:quickload :clos-web)
+(clos-web.models:test-basic-task)
+#+end_src
+
+* Exercise 2: Task Accessors
+
+**Goal**: Test creating and accessing task objects.
+
+**What to do**:
+1. Create a task using `make-instance`
+2. Access slot values using accessors
+3. Update the `test-basic-task` function
+
+**Example**:
+#+begin_src lisp
+(defun test-basic-task ()
+  (let ((task (make-instance 'task 
+                             :title "Learn CLOS"
+                             :description "Study Common Lisp Object System")))
+    (format t "Task: ~A~%" (task-title task))
+    (format t "Status: ~A~%" (task-status task))))
+#+end_src
+
+* Exercise 3: Generic Functions
+
+**Goal**: Define generic functions for task operations.
+
+**What to do**:
+1. Define `task-display-name` generic function
+2. Define `task-css-class` generic function
+3. Define `validate-task` generic function
+
+**Example**:
+#+begin_src lisp
+(defgeneric task-display-name (task)
+  (:documentation "Return a formatted name for display"))
+
+(defgeneric task-css-class (task)
+  (:documentation "Return CSS class for styling"))
+
+(defgeneric validate-task (task)
+  (:documentation "Validate task data"))
+#+end_src
+
+* Exercise 4: Method Implementations
+
+**Goal**: Implement methods for the generic functions.
+
+**What to do**:
+1. Implement `task-display-name` method for TASK class
+2. Implement `task-css-class` method for TASK class
+3. Implement `validate-task` method for TASK class
+
+**Example**:
+#+begin_src lisp
+(defmethod task-display-name ((task task))
+  (task-title task))
+
+(defmethod task-css-class ((task task))
+  "task")
+
+(defmethod validate-task ((task task))
+  (and (task-title task)
+       (> (length (task-title task)) 0)))
+#+end_src
+
+* Exercise 5: Task Inheritance
+
+**Goal**: Create specialized task types that inherit from TASK.
+
+**What to do**:
+1. Define `personal-task` class with priority slot
+2. Define `work-task` class with deadline and assigned-to slots
+3. Define `urgent-task` class with high priority and escalation time
+
+**Example**:
+#+begin_src lisp
+(defclass personal-task (task)
+  ((priority :initform :low :accessor task-priority)))
+
+(defclass work-task (task)
+  ((deadline :initarg :deadline :accessor task-deadline)
+   (assigned-to :initarg :assigned-to :accessor task-assigned-to)))
+
+(defclass urgent-task (task)
+  ((priority :initform :high :accessor task-priority)
+   (escalation-time :initform 3600 :accessor task-escalation-time)))
+#+end_src
+
+* Exercise 6: Polymorphic Behavior
+
+**Goal**: Implement different behaviors for different task types.
+
+**What to do**:
+1. Implement specialized `task-display-name` methods
+2. Implement specialized `task-css-class` methods
+3. Test polymorphic behavior
+
+**Example**:
+#+begin_src lisp
+(defmethod task-display-name ((task personal-task))
+  (format nil "~A (~A)" (task-title task) (task-priority task)))
+
+(defmethod task-css-class ((task urgent-task))
+  "urgent-task")
+#+end_src
+
+* Exercise 7: Method Combinations
+
+**Goal**: Add logging and validation using method combinations.
+
+**What to do**:
+1. Define `save-task` with `:around` method combination
+2. Add logging before and after saving
+3. Add validation using `:before` methods
+
+**Example**:
+#+begin_src lisp
+(defgeneric save-task (task)
+  (:method-combination :around)
+  (:documentation "Save task with logging and validation"))
+
+(defmethod save-task :around ((task task))
+  (format t "Saving task: ~A~%" (task-title task))
+  (call-next-method)
+  (format t "Task saved successfully~%"))
+
+(defmethod save-task :before ((task task))
+  (unless (validate-task task)
+    (error "Invalid task: ~A" (task-title task))))
+#+end_src
+
+* Exercise 8: Task Registry
+
+**Goal**: Create a singleton task registry to manage all tasks.
+
+**What to do**:
+1. Define `task-registry` class with class slots
+2. Implement `add-task`, `remove-task`, `get-task` methods
+3. Create a singleton instance
+
+**Example**:
+#+begin_src lisp
+(defclass task-registry ()
+  ((tasks :initform (make-hash-table :test 'equal) :allocation :class))
+  (:documentation "Singleton registry for all tasks"))
+
+(defvar *task-registry* (make-instance 'task-registry))
+
+(defmethod add-task ((registry task-registry) task)
+  (setf (gethash (task-id task) (slot-value registry 'tasks)) task))
+#+end_src
+
+* Exercise 9: JSON Serialization
+
+**Goal**: Add JSON serialization for tasks.
+
+**What to do**:
+1. Implement `task-to-json` method
+2. Implement `json-to-task` function
+3. Test serialization and deserialization
+
+**Example**:
+#+begin_src lisp
+(defmethod task-to-json ((task task))
+  (cl-json:encode-json-to-string
+   (list :id (task-id task)
+         :title (task-title task)
+         :description (task-description task)
+         :status (task-status task)
+         :created-at (task-created-at task))))
+#+end_src
+
+* Exercise 10: HTML Generation
+
+**Goal**: Generate HTML representation of tasks.
+
+**What to do**:
+1. Implement `task-to-html` method
+2. Use CL-WHO for HTML generation
+3. Test HTML output
+
+**Example**:
+#+begin_src lisp
+(defmethod task-to-html ((task task))
+  (cl-who:with-html-output-to-string (*standard-output* nil)
+    (:div :class (task-css-class task)
+          (:h3 (task-display-name task))
+          (:p (task-description task))
+          (:span :class "status" (string-downcase (task-status task))))))
+#+end_src
+
+* Web Integration Exercises (11-20)
+
+After completing the CLOS fundamentals, you'll move on to web integration:
+
+- **Exercise 11**: Web server setup with Hunchentoot
+- **Exercise 12**: Route definitions for task management
+- **Exercise 13**: Request handling and form processing
+- **Exercise 14**: Session management
+- **Exercise 15**: Error handling
+- **Exercise 16**: Basic HTML generation with CL-WHO
+- **Exercise 17**: Task list view
+- **Exercise 18**: Task form view
+- **Exercise 19**: Task detail view
+- **Exercise 20**: Layout and styling
+
+* Testing Your Work
+
+Each exercise includes test functions. Run them to verify your implementation:
+
+#+begin_src lisp
+;; Load the system
+(ql:quickload :clos-web)
+
+;; Run CLOS tests
+(clos-web.models:run-all-tests)
+
+;; Run web tests (after completing web exercises)
+(clos-web.web:run-web-tests)
+
+;; Run view tests (after completing view exercises)
+(clos-web.views:run-view-tests)
+#+end_src
+
+* Getting Help
+
+If you get stuck:
+
+1. **Check the hints** in each exercise
+2. **Look at the helper functions** provided
+3. **Test incrementally** - don't wait until the end
+4. **Use the REPL** to experiment with your code
+5. **Check Common Lisp documentation** for function details
+
+* Next Steps
+
+After completing all exercises, you'll have:
+
+- A working task management web application
+- Understanding of CLOS concepts and patterns
+- Experience with web development in Common Lisp
+- Knowledge of testing and debugging techniques
+
+You can then extend the application with additional features like:
+- Database integration
+- User authentication
+- Real-time updates
+- Mobile responsiveness
+- API endpoints
+
+* Happy Coding!
+
+Remember: CLOS is powerful but takes practice. Don't worry if you don't understand everything immediately. The key is to experiment and build incrementally. 

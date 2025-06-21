@@ -1,0 +1,156 @@
+#+TITLE: CLOS Web Tutorial - Getting Started
+#+AUTHOR: Your Name
+#+STARTUP: showall
+
+* Quick Start Guide
+
+This tutorial will teach you CLOS (Common Lisp Object System) by building a task management web application. You'll learn CLOS concepts progressively while creating something practical.
+
+* What You'll Build
+
+A web application that allows users to:
+- Create, view, edit, and delete tasks
+- Organize tasks by type (Personal, Work, Urgent)
+- Manage task priorities and deadlines
+- View tasks in a web interface
+
+* Prerequisites
+
+Before starting, make sure you have:
+
+1. **Common Lisp knowledge** - Basic syntax, functions, packages
+2. **Quicklisp** - Package manager for Common Lisp
+3. **Emacs + SLY** - Development environment
+4. **SBCL** - Common Lisp implementation
+
+If you need help setting these up, see the main README.org file.
+
+* Getting Started
+
+1. **Load the project**:
+   #+begin_src lisp
+   (ql:quickload :clos-web)
+   #+end_src
+
+2. **Start with Exercise 1**:
+   - Open `src/models.lisp`
+   - Find the "EXERCISE 1: Basic Task Class" section
+   - Follow the instructions to define your first CLOS class
+
+3. **Test your work**:
+   #+begin_src lisp
+   (clos-web.models:test-basic-task)
+   #+end_src
+
+* Exercise Structure
+
+Each exercise builds on the previous one:
+
+**Phase 1: CLOS Fundamentals (Exercises 1-10)**
+- Exercise 1: Basic Task Class
+- Exercise 2: Task Accessors
+- Exercise 3: Generic Functions
+- Exercise 4: Method Implementations
+- Exercise 5: Task Inheritance
+- Exercise 6: Polymorphic Behavior
+- Exercise 7: Method Combinations
+- Exercise 8: Task Registry
+- Exercise 9: JSON Serialization
+- Exercise 10: HTML Generation
+
+**Phase 2: Web Integration (Exercises 11-20)**
+- Exercise 11: Web Server Setup
+- Exercise 12: Route Definitions
+- Exercise 13: Request Handling
+- Exercise 14: Session Management
+- Exercise 15: Error Handling
+- Exercise 16: Basic HTML Generation
+- Exercise 17: Task List View
+- Exercise 18: Task Form View
+- Exercise 19: Task Detail View
+- Exercise 20: Layout and Styling
+
+* How to Work Through Exercises
+
+1. **Read the exercise description** in the source files
+2. **Look at the TODO comments** - these tell you what to implement
+3. **Check the hints** - they provide guidance on how to proceed
+4. **Test incrementally** - don't wait until the end to test
+5. **Use the REPL** - experiment with your code interactively
+
+* Example: Your First Exercise
+
+Here's what Exercise 1 looks like:
+
+#+begin_src lisp
+;;; EXERCISE 1: Basic Task Class
+;;; 
+;;; Your first task is to define a basic TASK class with the following slots:
+;;; - id: a unique identifier (auto-generated)
+;;; - title: the task title (required)
+;;; - description: task description (optional)
+;;; - status: current status (:pending, :in-progress, :completed)
+;;; - created-at: timestamp when task was created
+;;;
+;;; TODO: Define the TASK class below
+;;; HINT: Use defclass with appropriate slot options
+#+end_src
+
+Your job is to replace the TODO section with actual CLOS code.
+
+* Testing Your Work
+
+Each exercise includes test functions. Run them to verify your implementation:
+
+#+begin_src lisp
+;; Test basic task functionality
+(clos-web.models:test-basic-task)
+
+;; Test inheritance and polymorphism
+(clos-web.models:test-task-inheritance)
+
+;; Test the task registry
+(clos-web.models:test-task-registry)
+
+;; Run all tests
+(clos-web.models:run-all-tests)
+#+end_src
+
+* Getting Help
+
+If you get stuck:
+
+1. **Check the hints** in each exercise
+2. **Look at the helper functions** provided
+3. **Reference the solutions** in `solutions/models-solution.lisp`
+4. **Use the REPL** to experiment
+5. **Check Common Lisp documentation**
+
+* Development Workflow
+
+1. **Edit the source files** in Emacs
+2. **Compile your changes** with `C-c C-k`
+3. **Test in the REPL** with the test functions
+4. **Iterate** until it works
+5. **Move to the next exercise**
+
+* What You'll Learn
+
+By the end of this tutorial, you'll understand:
+
+- **CLOS Classes**: Defining classes with slots and inheritance
+- **Generic Functions**: Creating polymorphic interfaces
+- **Method Combinations**: Advanced CLOS features
+- **Object Persistence**: Storing and retrieving objects
+- **Web Development**: Building web applications with CLOS
+- **Testing**: Writing tests for CLOS code
+
+* Ready to Start?
+
+1. Open `src/models.lisp` in Emacs
+2. Find Exercise 1
+3. Start implementing your first CLOS class
+4. Test your work
+5. Continue to the next exercise
+
+Good luck and have fun learning CLOS! 

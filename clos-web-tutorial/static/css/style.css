@@ -1,0 +1,325 @@
+/* Task Manager CSS */
+
+/* Reset and base styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  line-height: 1.6;
+  color: #333;
+  background-color: #f4f4f4;
+}
+
+/* Layout */
+header {
+  background-color: #2c3e50;
+  color: white;
+  padding: 1rem 0;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+header h1 {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+nav {
+  text-align: center;
+}
+
+nav a {
+  color: white;
+  text-decoration: none;
+  margin: 0 1rem;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  transition: background-color 0.3s;
+}
+
+nav a:hover {
+  background-color: #34495e;
+}
+
+main {
+  max-width: 1200px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
+
+footer {
+  text-align: center;
+  padding: 2rem;
+  background-color: #2c3e50;
+  color: white;
+  margin-top: 2rem;
+}
+
+/* Task list styles */
+.task-list {
+  background-color: white;
+  border-radius: 8px;
+  padding: 2rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.task-list h2 {
+  margin-bottom: 1.5rem;
+  color: #2c3e50;
+}
+
+.task-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+.task-table th,
+.task-table td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+.task-table th {
+  background-color: #f8f9fa;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.task-table tr:hover {
+  background-color: #f8f9fa;
+}
+
+/* Task types */
+.task {
+  border-left: 4px solid #3498db;
+}
+
+.personal-task {
+  border-left: 4px solid #e74c3c;
+}
+
+.work-task {
+  border-left: 4px solid #f39c12;
+}
+
+.urgent-task {
+  border-left: 4px solid #e74c3c;
+  background-color: #fff5f5;
+}
+
+/* Form styles */
+.task-form {
+  background-color: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: #3498db;
+  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+}
+
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  margin-top: 2rem;
+}
+
+/* Button styles */
+.button,
+button {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 1rem;
+  transition: background-color 0.3s;
+}
+
+.button.primary,
+button[type="submit"] {
+  background-color: #3498db;
+  color: white;
+}
+
+.button.primary:hover,
+button[type="submit"]:hover {
+  background-color: #2980b9;
+}
+
+.button.secondary {
+  background-color: #95a5a6;
+  color: white;
+}
+
+.button.secondary:hover {
+  background-color: #7f8c8d;
+}
+
+.button.danger {
+  background-color: #e74c3c;
+  color: white;
+}
+
+.button.danger:hover {
+  background-color: #c0392b;
+}
+
+/* Task detail styles */
+.task-detail {
+  background-color: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.task-detail h2 {
+  color: #2c3e50;
+  margin-bottom: 1.5rem;
+  border-bottom: 2px solid #3498db;
+  padding-bottom: 0.5rem;
+}
+
+.task-info p {
+  margin-bottom: 0.75rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #eee;
+}
+
+.task-info strong {
+  color: #2c3e50;
+  min-width: 120px;
+  display: inline-block;
+}
+
+.task-actions {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid #eee;
+}
+
+/* Status indicators */
+.status-pending {
+  color: #f39c12;
+  font-weight: 600;
+}
+
+.status-in-progress {
+  color: #3498db;
+  font-weight: 600;
+}
+
+.status-completed {
+  color: #27ae60;
+  font-weight: 600;
+}
+
+/* Priority indicators */
+.priority-low {
+  color: #27ae60;
+}
+
+.priority-medium {
+  color: #f39c12;
+}
+
+.priority-high {
+  color: #e74c3c;
+  font-weight: 600;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  main {
+    padding: 0 0.5rem;
+  }
+  
+  .task-table {
+    font-size: 0.9rem;
+  }
+  
+  .task-table th,
+  .task-table td {
+    padding: 0.5rem 0.25rem;
+  }
+  
+  .form-actions {
+    flex-direction: column;
+  }
+  
+  .button,
+  button {
+    width: 100%;
+    text-align: center;
+  }
+}
+
+/* Utility classes */
+.text-center {
+  text-align: center;
+}
+
+.mt-2 {
+  margin-top: 2rem;
+}
+
+.mb-2 {
+  margin-bottom: 2rem;
+}
+
+.hidden {
+  display: none;
+}
+
+.error {
+  color: #e74c3c;
+  background-color: #fff5f5;
+  padding: 1rem;
+  border-radius: 4px;
+  border-left: 4px solid #e74c3c;
+  margin-bottom: 1rem;
+}
+
+.success {
+  color: #27ae60;
+  background-color: #f0fff4;
+  padding: 1rem;
+  border-radius: 4px;
+  border-left: 4px solid #27ae60;
+  margin-bottom: 1rem;
+} 
