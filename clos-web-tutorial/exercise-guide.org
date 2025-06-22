@@ -119,10 +119,16 @@ This exports both the class name and all its accessors, making them available to
 
 **What to do**:
 1. Define `task-display-name` generic function
-2. Define `task-css-class` generic function
+2. Define `task-css-class` generic function (returns CSS class names for HTML styling)
 3. Define `validate-task` generic function
 
-**Note**: Generic functions define the interface for operations that can work with different types of objects. Use `defgeneric` with appropriate documentation strings.
+**Example** (for `task-display-name`):
+#+begin_src lisp
+(defgeneric task-display-name (task)
+  (:documentation "Return a user-friendly display name for the task"))
+#+end_src
+
+**Note**: Generic functions define the interface for operations that can work with different types of objects. They specify what arguments the function takes and provide documentation. Use `defgeneric` with appropriate documentation strings for the other two functions.
 
 * Exercise 4: Method Implementations
 
@@ -133,7 +139,14 @@ This exports both the class name and all its accessors, making them available to
 2. Implement `task-css-class` method for TASK class
 3. Implement `validate-task` method for TASK class
 
-**Note**: Methods implement the behavior for specific classes. The `task-display-name` should return a user-friendly name, `task-css-class` should return CSS class names for styling, and `validate-task` should check that the task has valid data.
+**Example** (for `task-display-name`):
+#+begin_src lisp
+(defmethod task-display-name ((task task))
+  "Return a formatted display name for the task"
+  (format nil "~A (~A)" (task-title task) (task-status task)))
+#+end_src
+
+**Note**: Methods implement the behavior for specific classes. The `task-css-class` should return a string of CSS class names that will be applied to HTML elements when displaying the task (e.g., "task pending-task" or "task completed-task urgent"). The `validate-task` should check that the task has valid data and return T if valid, NIL otherwise.
 
 * Exercise 5: Task Inheritance
 
@@ -155,7 +168,12 @@ This exports both the class name and all its accessors, making them available to
 2. Implement specialized `task-css-class` methods
 3. Test polymorphic behavior
 
-**Note**: The `task-css-class` function returns CSS class names for styling different task types in the web interface. For example, urgent tasks might have a "urgent-task" class for red styling.
+**Note**: The `task-css-class` function returns a string of CSS class names that will be applied to HTML elements when displaying tasks in the web interface. For example:
+- A basic task might return "task pending-task"
+- An urgent task might return "task urgent-task high-priority"
+- A completed task might return "task completed-task"
+
+These class names correspond to CSS rules in your stylesheet for different visual styling (colors, fonts, etc.).
 
 * Exercise 7: Method Combinations
 

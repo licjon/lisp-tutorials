@@ -34,8 +34,9 @@
 (defgeneric validate-task (task)
   (:documentation "Validate task data"))
 
+;; NOTE: This generic function is used in Exercise 7 for method combinations
 (defgeneric save-task (task)
-  (:method-combination :around)
+  (:method-combination standard)
   (:documentation "Save task with logging and validation"))
 
 ;;; ========================================
