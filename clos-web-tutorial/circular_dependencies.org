@@ -1,0 +1,478 @@
+#+TITLE: Circular Dependencies in Common Lisp ASDF Systems
+#+AUTHOR: CLOS Web Tutorial
+#+DATE: 2025
+
+* Introduction
+
+Circular dependencies are one of the most common issues when building larger Common Lisp systems. They occur when packages or files depend on each other in a circular fashion, preventing the system from loading properly. This lesson covers what circular dependencies are, why they happen, and how to resolve them using best practices.
+
+* What Are Circular Dependencies?
+
+A circular dependency occurs when two or more components depend on each other, either directly or indirectly, creating a cycle that prevents proper loading order.
+
+** Example of a Circular Dependency
+
+#+BEGIN_SRC lisp
+;; In package.lisp
+(defpackage #:my-system.models
+  (:use #:cl)
+  (:import-from #:my-system.utils #:generate-id))  ; Depends on utils
+
+(defpackage #:my-system.utils
+  (:use #:cl)
+  (:import-from #:my-system.models #:task))        ; Depends on models!
+#+END_SRC
+
+This creates a circular dependency: models → utils → models
+
+* Common Causes of Circular Dependencies
+
+** 1. Package Import Cycles
+The most common cause is when package definitions try to import symbols from packages that haven't been loaded yet.
+
+** 2. Incorrect ASDF Component Ordering
+When ASDF system definitions don't properly specify the loading order of components.
+
+** 3. Premature Symbol Resolution
+When package definitions reference symbols that don't exist yet at load time.
+
+* Example: How This Tutorial's Circular Dependency Was Resolved
+
+This tutorial originally had a circular dependency issue that we've since fixed. Here's what the problematic structure looked like and how we resolved it - this serves as a great learning example:
+
+#+BEGIN_SRC lisp
+;; Original problematic structure
+(asdf:defsystem #:clos-web
+  :serial t  ; This was part of the problem
+  :components ((:file "package")        ; Loaded first
+               (:module "src"
+                :components ((:file "utils")     ; Loaded after package
+                            (:file "models")
+                            (:file "views")))))
+
+;; In package.lisp (loaded first)
+(defpackage #:clos-web.utils
+  (:use #:cl)
+  (:export #:generate-id))  ; Utils not loaded yet!
+
+(defpackage #:clos-web.models
+  (:use #:cl)
+  (:import-from #:clos-web.utils #:generate-id))  ; Try to import generate-id
+#+END_SRC
+
+** The Error Message
+#+BEGIN_EXAMPLE
+Circular dependency:
+   ((#<ASDF/LISP-ACTION:COMPILE-OP >
+     . #<ASDF/LISP-ACTION:CL-SOURCE-FILE "clos-web" "package">)
+    (#<ASDF/LISP-ACTION:LOAD-OP >
+     . #<ASDF/SYSTEM:SYSTEM "clos-web">)
+    (#<ASDF/LISP-ACTION:LOAD-OP >
+     . #<ASDF/LISP-ACTION:CL-SOURCE-FILE "clos-web" "package">))
+   [Condition of type ASDF/ACTION:CIRCULAR-DEPENDENCY]
+#+END_EXAMPLE
+
+* Solution Strategies
+
+** Strategy 1: Restructure ASDF System (Recommended)
+
+The best solution is to restructure your ASDF system to load dependencies in the correct order:
+
+#+BEGIN_SRC lisp
+(asdf:defsystem #:clos-web
+  :description "CLOS Web Application Tutorial"
+  :depends-on (#:hunchentoot #:cl-who #:cl-json #:alexandria)
+  :components ((:file "utils-package")                    ; 1. Load utils package first
+               (:file "src/utils" :depends-on ("utils-package"))  ; 2. Load utils implementation
+               (:file "package" :depends-on ("src/utils"))        ; 3. Load other packages
+               (:module "src"
+                :depends-on ("package")                    ; 4. Load remaining modules
+                :components ((:file "models")
+                            (:file "views")
+                            (:file "web-server")))))
+#+END_SRC
+
+** Strategy 2: Use Qualified Names
+
+If restructuring is not possible, use qualified package names:
+
+#+BEGIN_SRC lisp
+;; Instead of importing symbols
+(defpackage #:my-system.models
+  (:use #:cl)
+  ;; Don't import from utils
+  )
+
+;; Use qualified names in code
+(defclass task ()
+  ((id :initform (my-system.utils:generate-id) :accessor task-id)))
+#+END_SRC
+
+** Strategy 3: Late Symbol Resolution
+
+Use symbols that will be resolved at runtime rather than load time:
+
+#+BEGIN_SRC lisp
+;; Use string designators or late binding
+(defclass task ()
+  ((id :initform (funcall (find-symbol "GENERATE-ID" "MY-SYSTEM.UTILS"))
+       :accessor task-id)))
+#+END_SRC
+
+* Best Practices for Avoiding Circular Dependencies
+
+** 1. Separate Package Definitions from Implementations
+
+Create separate files for package definitions and their implementations:
+
+#+BEGIN_SRC lisp
+;; utils-package.lisp - Only package definition
+(defpackage #:my-system.utils
+  (:use #:cl)
+  (:export #:generate-id #:format-date))
+
+;; src/utils.lisp - Implementation
+(in-package #:my-system.utils)
+(defun generate-id () ...)
+#+END_SRC
+
+** 2. Use Explicit Dependencies in ASDF
+
+Always specify dependencies explicitly rather than relying on =:serial t=:
+
+#+BEGIN_SRC lisp
+(asdf:defsystem #:my-system
+  ;; Don't use :serial t for complex systems
+  :components ((:file "base-package")
+               (:file "utils" :depends-on ("base-package"))
+               (:file "models" :depends-on ("utils"))
+               (:file "views" :depends-on ("models"))))
+#+END_SRC
+
+** 3. Create a Dependency Hierarchy
+
+Design your system with a clear hierarchy:
+
+#+BEGIN_EXAMPLE
+Level 1: Base utilities (no dependencies)
+Level 2: Core models (depend on utilities)
+Level 3: Views and controllers (depend on models)
+Level 4: Web server (depends on views/controllers)
+#+END_EXAMPLE
+
+** 4. Use Forward Declarations When Necessary
+
+For complex interdependencies, use forward declarations:
+
+#+BEGIN_SRC lisp
+;; In models.lisp
+(defclass task () ())  ; Forward declaration
+
+;; In utils.lisp
+(defgeneric process-task (task))  ; Can reference task class
+
+;; Back in models.lisp (later in loading order)
+(defclass task ()  ; Full definition
+  ((id :accessor task-id)
+   (title :accessor task-title)))
+#+END_SRC
+
+* Debugging Circular Dependencies
+
+** 1. Analyze the Error Message
+
+ASDF provides detailed information about the circular dependency:
+
+#+BEGIN_EXAMPLE
+Circular dependency:
+   ((COMPILE-OP . FILE-A)
+    (LOAD-OP . SYSTEM)
+    (LOAD-OP . FILE-A))
+#+END_EXAMPLE
+
+This shows the cycle: FILE-A needs to be compiled, which requires the system to be loaded, which requires FILE-A to be loaded.
+
+** 2. Draw Your Dependency Graph
+
+Create a visual representation of your dependencies:
+
+#+BEGIN_EXAMPLE
+package.lisp → imports from utils
+    ↓
+src/utils.lisp → defines utils package
+    ↑
+    └── Circular dependency!
+#+END_EXAMPLE
+
+** 3. Use ASDF's Dependency Visualization
+
+#+BEGIN_SRC lisp
+;; In the REPL
+(asdf:component-depends-on 'asdf:load-op (asdf:find-system :your-system))
+#+END_SRC
+
+* Testing Your Solution
+
+After fixing circular dependencies, test your system:
+
+#+BEGIN_SRC lisp
+;; Force reload to test
+(ql:quickload :your-system :force t)
+
+;; Test that all packages are available
+(find-package :your-system.utils)
+(find-package :your-system.models)
+
+;; Test that imported symbols work
+(in-package :your-system.models)
+(generate-id)  ; Should work if properly imported
+#+END_SRC
+
+* Advanced Techniques
+
+** 1. Conditional Loading
+
+For complex systems, you might need conditional loading:
+
+#+BEGIN_SRC lisp
+(asdf:defsystem #:my-system
+  :components ((:file "package")
+               (:file "utils")
+               ;; Only load if certain conditions are met
+               #+feature-x (:file "optional-module")))
+#+END_SRC
+
+** 2. System Hierarchies
+
+Break large systems into smaller, independent systems:
+
+#+BEGIN_SRC lisp
+;; Base system
+(asdf:defsystem #:my-system-base
+  :components ((:file "utils")))
+
+;; Models system depends on base
+(asdf:defsystem #:my-system-models
+  :depends-on (#:my-system-base)
+  :components ((:file "models")))
+
+;; Main system depends on both
+(asdf:defsystem #:my-system
+  :depends-on (#:my-system-base #:my-system-models)
+  :components ((:file "main")))
+#+END_SRC
+
+* Conclusion
+
+Circular dependencies are a common but solvable problem in Common Lisp systems. The key principles are:
+
+1. **Separate concerns**: Keep package definitions separate from implementations
+2. **Explicit dependencies**: Use ASDF's dependency system properly
+3. **Hierarchical design**: Create clear dependency hierarchies
+4. **Test thoroughly**: Always test your system loading after changes
+
+By following these practices, you can build robust, maintainable Common Lisp systems that load reliably and are easy to understand and modify.
+
+* Common Misconception: "Just Reorder the Package Definitions"
+
+A common question is: "Couldn't we have just moved the =defpackage= for utils above the =defpackage= for models in the same file?"
+
+**The answer is NO**, and here's why:
+
+** The Problematic Structure (Educational Example)
+
+#+BEGIN_SRC lisp
+;; Original clos-web.asd
+(asdf:defsystem #:clos-web
+  :serial t  ; Files loaded in order
+  :components ((:file "package")        ; 1. Load package.lisp FIRST
+               (:module "src"
+                :components ((:file "utils")     ; 2. Load utils.lisp SECOND
+                            (:file "models")
+                            (:file "views")))))
+
+;; In package.lisp (loaded BEFORE utils.lisp)
+(defpackage #:clos-web.utils      ; Define package
+  (:use #:cl)
+  (:export #:generate-id))        ; ...but generate-id symbol doesn't exist yet!
+
+(defpackage #:clos-web.models
+  (:use #:cl)
+  (:import-from #:clos-web.utils #:generate-id))  ; ERROR: Symbol not found!
+#+END_SRC
+
+** Why Reordering Doesn't Work
+
+Even if we moved the utils package definition above models in =package.lisp=:
+
+#+BEGIN_SRC lisp
+;; This STILL wouldn't work:
+;; In package.lisp
+(defpackage #:clos-web.utils      ; Package exists...
+  (:use #:cl)
+  (:export #:generate-id))        ; ...but generate-id symbol doesn't exist yet!
+
+(defpackage #:clos-web.models
+  (:use #:cl)
+  (:import-from #:clos-web.utils #:generate-id))  ; ERROR: Symbol not found!
+#+END_SRC
+
+** The Root Cause
+
+The issue isn't the order of package definitions—it's that =:import-from= tries to import **symbols** that don't exist yet:
+
+1. =package.lisp= loads first and defines the =clos-web.utils= package
+2. The package exists, but it's **empty**—no symbols have been defined yet
+3. =:import-from= tries to find the symbol =generate-id= in the =clos-web.utils= package
+4. **ERROR**: The symbol doesn't exist because =utils.lisp= hasn't loaded yet to define =generate-id=
+
+** The Timeline Problem
+
+#+BEGIN_EXAMPLE
+Time 1: package.lisp loads
+        - clos-web.utils package created (empty)
+        - :import-from tries to find generate-id symbol
+        - FAILS: generate-id doesn't exist yet
+
+Time 2: src/utils.lisp loads  
+        - (defun generate-id ...) creates the symbol
+        - TOO LATE: :import-from already failed
+#+END_EXAMPLE
+
+** How the Correct Solution Works
+
+The correct approach works because it separates package creation from symbol importing:
+
+#+BEGIN_SRC lisp
+;; 1. utils-package.lisp - Create empty package
+(defpackage #:clos-web.utils
+  (:export #:generate-id))  ; Promise to export generate-id
+
+;; 2. src/utils.lisp - Define the actual function
+(in-package #:clos-web.utils)
+(defun generate-id ...)  ; Now the symbol exists
+
+;; 3. package.lisp - Import the now-existing symbol
+(defpackage #:clos-web.models
+  (:import-from #:clos-web.utils #:generate-id))  ; SUCCESS!
+#+END_SRC
+
+** Key Insight
+
+The crucial insight is that **package definitions and symbol definitions are separate steps**:
+
+- =defpackage= creates the package structure and declares exports
+- =defun=, =defvar=, etc. create the actual symbols
+- =:import-from= requires the symbols to already exist
+
+This is why we needed to separate the package definition from the implementation, ensuring symbols are defined before they're imported.
+
+* A Note on ASDF Design Complexity
+
+You might be thinking: "This seems overly complicated for something as basic as using functions from another file!" And you'd be right to feel that way.
+
+** The Design Trade-off
+
+This complexity stems from Common Lisp's design philosophy of separating **namespaces** (packages) from **modules** (files/systems). While this separation provides powerful capabilities, it also creates friction for common use cases:
+
+- **Packages** define symbol visibility and naming
+- **Systems** define loading order and dependencies
+- **Files** contain the actual code
+
+Most modern languages conflate these concepts for simplicity:
+
+#+BEGIN_SRC python
+# Python - simple and straightforward
+from utils import generate_id
+
+class Task:
+    def __init__(self):
+        self.id = generate_id()
+#+END_SRC
+
+#+BEGIN_SRC javascript
+// JavaScript - also straightforward  
+import { generateId } from './utils.js';
+
+class Task {
+    constructor() {
+        this.id = generateId();
+    }
+}
+#+END_SRC
+
+** Why Common Lisp Is Different
+
+Common Lisp's approach has historical and technical reasons:
+
+1. **Pre-dates modern module systems**: Common Lisp was designed in the 1980s before modern module systems existed
+2. **Runtime flexibility**: The package system allows runtime manipulation of namespaces
+3. **Separate compilation**: Packages can be defined independently of their implementations
+4. **Symbol control**: Fine-grained control over what symbols are visible where
+
+** The Real-World Impact
+
+In practice, this means:
+
+- **Simple projects** feel over-engineered compared to other languages
+- **Complex projects** benefit from the fine-grained control
+- **Learning curve** is steeper than necessary for basic use cases
+- **Boilerplate** is required for common patterns
+
+** Modern Alternatives and Workarounds
+
+Some Common Lisp developers use patterns to reduce this complexity:
+
+*** 1. Single Package Per System (Simple Projects)
+#+BEGIN_SRC lisp
+;; For small systems, just use one package
+(defpackage #:my-app
+  (:use #:cl)
+  (:export #:main))
+
+;; All files use the same package
+(in-package #:my-app)
+#+END_SRC
+
+*** 2. Utility-First Loading
+#+BEGIN_SRC lisp
+;; Load utilities first, then everything else
+(asdf:defsystem #:my-app
+  :components ((:file "utils")     ; Always load utilities first
+               (:file "models" :depends-on ("utils"))
+               (:file "views" :depends-on ("models"))
+               (:file "main" :depends-on ("views"))))
+#+END_SRC
+
+*** 3. Modern Alternatives
+Some developers use alternative systems like:
+- **ASDF/Package-Inferred-System**: Automatically infers dependencies from package names
+- **Quickproject**: Generates standard project templates
+- **Modern project generators**: That set up the boilerplate correctly
+
+** The Bigger Picture
+
+This complexity is part of why some developers find Common Lisp intimidating initially. The language excels at complex, long-lived systems where the fine-grained control pays off, but it can feel heavyweight for simple scripts or small applications.
+
+However, once you understand the patterns (like the ones we've demonstrated), they become second nature. The key is having good templates and examples to follow—which is exactly what this tutorial aims to provide.
+
+** Recommendation
+
+For learning and small projects, don't let this complexity discourage you. Use the patterns we've shown, and remember that:
+
+1. **Most projects follow similar patterns** - once you've seen it a few times, it becomes routine
+2. **The complexity pays off** in larger systems with many interdependent components  
+3. **Good tooling helps** - modern Common Lisp environments can generate much of this boilerplate
+4. **You're learning a powerful system** - the flexibility is there when you need it
+
+The goal isn't to defend the design choices, but to help you work effectively within them while appreciating both their costs and benefits.
+
+* Further Reading
+
+- [[https://common-lisp.net/project/asdf/asdf.html][ASDF Manual]]
+- [[https://www.cs.cmu.edu/Groups/AI/html/cltl/clm/node11.html][Common Lisp Packages]]
+- [[https://lispcookbook.github.io/cl-cookbook/systems.html][Common Lisp Cookbook: Systems]]
+
+* Exercise
+
+Try creating a small system with intentional circular dependencies, then practice resolving them using the techniques described in this lesson. This hands-on experience will help solidify your understanding of dependency management in Common Lisp. 
