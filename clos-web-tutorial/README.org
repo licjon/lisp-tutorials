@@ -146,6 +146,43 @@ Each exercise includes test functions. Run them to verify your implementation:
 (clos-web.views:run-view-tests)
 #+end_src
 
+**⚠️ Important REPL Package Note:**
+
+When working in the REPL, you need to be aware of **package symbols**. The tutorial uses multiple packages:
+- `clos-web.models` - Contains the `task` class and related functions
+- `clos-web.web` - Contains web server functions
+- `clos-web.views` - Contains HTML generation functions
+
+**If you get a `CLASS-NOT-FOUND-ERROR` or `UNBOUND-FUNCTION` error:**
+
+1. **Use fully qualified names** from `CL-USER`:
+   #+begin_src lisp
+   ;; From CL-USER package
+   (defvar my-task (make-instance 'clos-web.models:task 
+                                  :title "Test Task"
+                                  :description "Testing CLOS"))
+   #+end_src
+
+2. **Or switch to the appropriate package:**
+   #+begin_src lisp
+   ;; Switch to the models package for CLOS exercises
+   (in-package #:clos-web.models)
+   (defvar my-task (make-instance 'task 
+                                  :title "Test Task" 
+                                  :description "Testing CLOS"))
+   #+end_src
+
+3. **Or import specific symbols:**
+   #+begin_src lisp
+   ;; Import task class into CL-USER
+   (import 'clos-web.models:task)
+   (defvar my-task (make-instance 'task 
+                                  :title "Test Task"
+                                  :description "Testing CLOS"))
+   #+end_src
+
+**Recommended approach:** Switch to `clos-web.models` package when working on CLOS exercises!
+
 * Getting Help
 
 If you get stuck:

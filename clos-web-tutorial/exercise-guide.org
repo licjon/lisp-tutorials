@@ -146,7 +146,24 @@ This exports both the class name and all its accessors, making them available to
   (format nil "~A (~A)" (task-title task) (task-status task)))
 #+end_src
 
-**Note**: Methods implement the behavior for specific classes. The `task-css-class` should return a string of CSS class names that will be applied to HTML elements when displaying the task (e.g., "task pending-task" or "task completed-task urgent"). The `validate-task` should check that the task has valid data and return T if valid, NIL otherwise.
+**Note**: Methods implement the behavior for specific classes. 
+
+For `task-css-class`: Return a string of CSS class names (literal strings, not task objects). For this exercise, you're only implementing the method for the basic `task` class, so just return `"task"`. In Exercise 6, you'll learn how different task types return different class names.
+
+**Example for `task-css-class`**:
+#+begin_src lisp
+(defmethod task-css-class ((task task))
+  "task")  ; Returns the literal string "task" for basic tasks
+#+end_src
+
+For `validate-task`: Check that the task has the minimum required data to be valid. At minimum, check that the task has a title and that the title is not empty. Return `T` if the task is valid, `NIL` if invalid.
+
+**Example for `validate-task`**:
+#+begin_src lisp
+(defmethod validate-task ((task task))
+  (and (task-title task)                    ; Title exists
+       (> (length (task-title task)) 0)))   ; Title is not empty
+#+end_src
 
 * Exercise 5: Task Inheritance
 
@@ -157,7 +174,7 @@ This exports both the class name and all its accessors, making them available to
 2. Define `work-task` class with deadline and assigned-to slots
 3. Define `urgent-task` class with high priority and escalation time
 
-**Note**: Use what you learned from Exercise 1 to define these classes. Remember to use `:superclass` to specify inheritance from the TASK class.
+**Note**: Use what you learned from Exercise 1 to define these classes. To inherit from the TASK class, put the superclass name in parentheses after your class name: `(defclass personal-task (task) ...)`. The `(task)` is a list of superclasses - you can inherit from multiple classes by listing them all.
 
 * Exercise 6: Polymorphic Behavior
 
