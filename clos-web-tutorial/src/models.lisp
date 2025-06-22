@@ -59,7 +59,6 @@
 ;;; - urgent-task: high priority with escalation time
 ;;;
 ;;; TODO: Define these subclasses
-;;; HINT: Use defclass with :superclass option
 
 ;;; ========================================
 ;;; EXERCISE 6: Polymorphic Behavior

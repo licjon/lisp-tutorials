@@ -10,6 +10,7 @@
 
 (defpackage #:clos-web.models
   (:use #:cl)
+  (:import-from #:clos-web.utils #:generate-id #:current-timestamp #:format-date)
   (:nicknames #:cwm)
   (:export #:task
            #:personal-task
