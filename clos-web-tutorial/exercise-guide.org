@@ -130,6 +130,13 @@ This exports both the class name and all its accessors, making them available to
 
 **Note**: Generic functions define the interface for operations that can work with different types of objects. They specify what arguments the function takes and provide documentation. Use `defgeneric` with appropriate documentation strings for the other two functions.
 
+**Package Reminder**: Don't forget to export your new generic functions from `package.lisp`:
+#+begin_src lisp
+#:task-display-name
+#:task-css-class  
+#:validate-task
+#+end_src
+
 * Exercise 4: Method Implementations
 
 **Goal**: Implement methods for the generic functions.
@@ -176,6 +183,15 @@ For `validate-task`: Check that the task has the minimum required data to be val
 
 **Note**: Use what you learned from Exercise 1 to define these classes. To inherit from the TASK class, put the superclass name in parentheses after your class name: `(defclass personal-task (task) ...)`. The `(task)` is a list of superclasses - you can inherit from multiple classes by listing them all.
 
+**Package Reminder**: Export your new classes and their accessors from `package.lisp`:
+#+begin_src lisp
+#:personal-task #:task-priority
+#:work-task #:task-deadline #:task-assigned-to
+#:urgent-task #:task-escalation-time
+#+end_src
+
+**Test Reminder**: Update `test-task-inheritance` function to test your new classes.
+
 * Exercise 6: Polymorphic Behavior
 
 **Goal**: Implement different behaviors for different task types.
@@ -203,6 +219,11 @@ These class names correspond to CSS rules in your stylesheet for different visua
 
 **Note**: Method combinations allow you to control the order and behavior of multiple methods. `:around` methods wrap the entire method call, while `:before` methods run before the primary method.
 
+**Package Reminder**: Export the `save-task` generic function from `package.lisp`:
+#+begin_src lisp
+#:save-task
+#+end_src
+
 * Exercise 8: Task Registry
 
 **Goal**: Create a singleton task registry to manage all tasks.
@@ -213,6 +234,14 @@ These class names correspond to CSS rules in your stylesheet for different visua
 3. Create a singleton instance
 
 **Note**: Use `:allocation :class` to create class slots that are shared across all instances. A singleton pattern ensures only one registry exists.
+
+**Package Reminder**: Export the task registry class and methods from `package.lisp`:
+#+begin_src lisp
+#:task-registry
+#:add-task #:remove-task #:get-task #:get-all-tasks
+#+end_src
+
+**Test Reminder**: Update `test-task-registry` function to test your registry implementation.
 
 * Exercise 9: JSON Serialization
 
@@ -225,6 +254,13 @@ These class names correspond to CSS rules in your stylesheet for different visua
 
 **Note**: Use the `cl-json` library to convert task objects to and from JSON format for web API communication.
 
+**Package Reminder**: Export the JSON functions from `package.lisp`:
+#+begin_src lisp
+#:task-to-json #:json-to-task
+#+end_src
+
+**System Dependency**: Add `cl-json` to your system dependencies in `clos-web.asd` if not already present.
+
 * Exercise 10: HTML Generation
 
 **Goal**: Generate HTML representation of tasks.
@@ -235,6 +271,13 @@ These class names correspond to CSS rules in your stylesheet for different visua
 3. Test HTML output
 
 **Note**: CL-WHO provides a Lisp-like syntax for generating HTML. Use the `task-css-class` method to apply appropriate styling classes.
+
+**Package Reminder**: Export the HTML functions from `package.lisp`:
+#+begin_src lisp
+#:task-to-html #:render-task-list
+#+end_src
+
+**System Dependency**: Add `cl-who` to your system dependencies in `clos-web.asd` if not already present.
 
 * Web Integration Exercises (11-20)
 
