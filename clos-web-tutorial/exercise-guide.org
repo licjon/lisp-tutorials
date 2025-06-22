@@ -63,19 +63,7 @@ The tutorial is organized into progressive exercises:
    (created-at :initform (get-universal-time) :accessor task-created-at)))
 #+end_src
 
-**Note**: You'll need to either import `generate-id` from the utils package or define it locally. Update your `package.lisp` to include:
-#+begin_src lisp
-(defpackage #:clos-web.models
-  (:use #:cl)
-  (:import-from #:clos-web.utils #:generate-id)
-  (:export #:task
-           #:task-id
-           #:task-title
-           #:task-description
-           #:task-status
-           #:task-created-at
-           #:test-basic-task))
-#+end_src
+**Note**: The `generate-id` and `format-date` functions are imported from the utils package. The class definition should work as shown above.
 
 **Test it**:
 #+begin_src lisp

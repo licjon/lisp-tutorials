@@ -67,13 +67,7 @@
 ;;; ========================================
 ;;; HELPER FUNCTIONS (Provided)
 ;;; ========================================
-
-(defun format-date (universal-time)
-  "Format universal time as a readable date string"
-  (multiple-value-bind (second minute hour date month year)
-      (decode-universal-time universal-time)
-    (format nil "~4,'0D-~2,'0D-~2,'0D ~2,'0D:~2,'0D" 
-            year month date hour minute)))
+;;; Note: format-date is imported from clos-web.utils
 
 (defun class-name-string (class)
   "Get the name of a class as a string"

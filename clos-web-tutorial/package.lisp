@@ -30,16 +30,9 @@
 
 (defpackage #:clos-web.views
   (:use #:cl)
+  (:import-from #:clos-web.utils #:format-date)
   (:nicknames #:cwv)
   (:export #:render-task-list
            #:render-task-form
            #:render-task-item
            #:render-layout))
-
-(defpackage #:clos-web.utils
-  (:use #:cl)
-  (:nicknames #:cwu)
-  (:export #:generate-id
-           #:current-timestamp
-           #:format-currency
-           #:format-date)) 
