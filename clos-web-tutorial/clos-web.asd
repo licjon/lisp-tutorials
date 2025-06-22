@@ -10,8 +10,8 @@
                #:alexandria)
   :components ((:file "package")
                (:module "src"
-                :components ((:file "models")
-                            (:file "web-server")
+                :components ((:file "utils")
+                            (:file "models")
                             (:file "views")
-                            (:file "utils"))))
+                            (:file "web-server"))))
   :in-order-to ((test-op (test-op #:clos-web-tests)))) 

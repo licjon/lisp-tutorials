@@ -6,9 +6,9 @@
 
 (defun generate-id ()
   "Generate a unique ID for tasks"
-  (format nil "~A" (get-universal-time)))
+  (format nil "~A" (current-timestamp)))
 
-(defun get-universal-time ()
+(defun current-timestamp ()
   "Get current universal time"
   (get-universal-time))
 

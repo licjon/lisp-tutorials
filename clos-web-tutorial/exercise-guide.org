@@ -69,6 +69,8 @@ The tutorial is organized into progressive exercises:
 (clos-web.models:test-basic-task)
 #+end_src
 
+**Note**: At this point, `test-basic-task` should return `nil` because the test function implementation comes in Exercise 2. The class definition should work, but the test function itself is not yet implemented.
+
 * Exercise 2: Task Accessors
 
 **Goal**: Test creating and accessing task objects.

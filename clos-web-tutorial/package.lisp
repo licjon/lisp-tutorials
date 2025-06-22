@@ -15,14 +15,6 @@
            #:personal-task
            #:work-task
            #:urgent-task
-           #:task-title
-           #:task-description
-           #:task-status
-           #:task-created-at
-           #:task-priority
-           #:task-deadline
-           #:task-assigned-to
-           #:task-escalation-time
            #:task-display-name
            #:task-css-class
            #:validate-task
@@ -48,6 +40,6 @@
   (:use #:cl)
   (:nicknames #:cwu)
   (:export #:generate-id
-           #:get-universal-time
+           #:current-timestamp
            #:format-currency
            #:format-date)) 

@@ -68,6 +68,18 @@
 ;;; HELPER FUNCTIONS (Provided)
 ;;; ========================================
 
+(defun format-date (universal-time)
+  "Format universal time as a readable date string"
+  (multiple-value-bind (second minute hour date month year)
+      (decode-universal-time universal-time)
+    (format nil "~4,'0D-~2,'0D-~2,'0D ~2,'0D:~2,'0D" 
+            year month date hour minute)))
+
+(defun class-name-string (class)
+  "Get the name of a class as a string"
+  (let ((class-symbol (class-name (class-of class))))
+    (string-downcase (symbol-name class-symbol))))
+
 (defun render-layout (title content)
   "Render a complete HTML page with layout"
   (with-html-output-to-string (*standard-output* nil :prologue t)
@@ -108,16 +120,16 @@
   "Render a single task as a table row"
   (with-html-output-to-string (*standard-output* nil)
     (:tr :class (task-css-class task)
-         (:td (task-title task))
-         (:td (class-name (class-of task)))
-         (:td (string-downcase (task-status task)))
-         (:td (format-date (task-created-at task)))
+         (:td (slot-value task 'title))
+         (:td (class-name-string (class-of task)))
+         (:td (string-downcase (slot-value task 'status)))
+         (:td (format-date (slot-value task 'created-at)))
          (:td
-          (:a :href (format nil "/task/~A" (task-id task)) "View")
-          (:a :href (format nil "/task/~A/edit" (task-id task)) "Edit")
-          (:form :method "post" :action (format nil "/task/~A/delete" (task-id task))
+          (:a :href (format nil "/task/~A" (slot-value task 'id)) "View")
+          (:a :href (format nil "/task/~A/edit" (slot-value task 'id)) "Edit")
+          (:form :method "post" :action (format nil "/task/~A/delete" (slot-value task 'id))
                  :style "display: inline;"
-                 (:button :type "submit" :onclick "return confirm('Delete this task?')" "Delete")))))))
+                 (:button :type "submit" :onclick "return confirm('Delete this task?')" "Delete"))))))
 
 (defun render-task-form (task &optional (action "/task/create"))
   "Render a form for creating or editing a task"
@@ -126,11 +138,11 @@
            (:div :class "form-group"
                  (:label :for "title" "Title:")
                  (:input :type "text" :id "title" :name "title" 
-                         :value (when task (task-title task)) :required t))
+                         :value (when task (slot-value task 'title)) :required t))
            (:div :class "form-group"
                  (:label :for "description" "Description:")
                  (:textarea :id "description" :name "description" :rows "3"
-                           (when task (task-description task))))
+                           (when task (slot-value task 'description))))
            (:div :class "form-group"
                  (:label :for "task-type" "Task Type:")
                  (:select :id "task-type" :name "task-type"
@@ -153,17 +165,17 @@
     (:div :class "task-detail"
           (:h2 (task-display-name task))
           (:div :class "task-info"
-                (:p (:strong "Description: ") (task-description task))
-                (:p (:strong "Status: ") (string-downcase (task-status task)))
-                (:p (:strong "Created: ") (format-date (task-created-at task)))
+                (:p (:strong "Description: ") (slot-value task 'description))
+                (:p (:strong "Status: ") (string-downcase (slot-value task 'status)))
+                (:p (:strong "Created: ") (format-date (slot-value task 'created-at)))
                 (when (slot-boundp task 'priority)
-                  (:p (:strong "Priority: ") (string-downcase (task-priority task))))
+                  (:p (:strong "Priority: ") (string-downcase (slot-value task 'priority))))
                 (when (slot-boundp task 'deadline)
-                  (:p (:strong "Deadline: ") (format-date (task-deadline task))))
+                  (:p (:strong "Deadline: ") (format-date (slot-value task 'deadline))))
                 (when (slot-boundp task 'assigned-to)
-                  (:p (:strong "Assigned to: ") (task-assigned-to task))))
+                  (:p (:strong "Assigned to: ") (slot-value task 'assigned-to))))
           (:div :class "task-actions"
-                (:a :href (format nil "/task/~A/edit" (task-id task)) :class "button" "Edit")
+                (:a :href (format nil "/task/~A/edit" (slot-value task 'id)) :class "button" "Edit")
                 (:a :href "/" :class "button" "Back to List")))))
 
 ;;; ========================================
