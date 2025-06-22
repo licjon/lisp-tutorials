@@ -63,6 +63,20 @@ The tutorial is organized into progressive exercises:
    (created-at :initform (get-universal-time) :accessor task-created-at)))
 #+end_src
 
+**Note**: You'll need to either import `generate-id` from the utils package or define it locally. Update your `package.lisp` to include:
+#+begin_src lisp
+(defpackage #:clos-web.models
+  (:use #:cl)
+  (:import-from #:clos-web.utils #:generate-id)
+  (:export #:task
+           #:task-id
+           #:task-title
+           #:task-description
+           #:task-status
+           #:task-created-at
+           #:test-basic-task))
+#+end_src
+
 **Test it**:
 #+begin_src lisp
 (ql:quickload :clos-web)
@@ -73,21 +87,26 @@ The tutorial is organized into progressive exercises:
 
 * Exercise 2: Task Accessors
 
-**Goal**: Test creating and accessing task objects.
+**Goal**: Implement the test function to create and access task objects.
 
 **What to do**:
-1. Create a task using `make-instance`
-2. Access slot values using accessors
-3. Update the `test-basic-task` function
+1. Open `src/models.lisp` and find the `test-basic-task` function
+2. Implement the function to create a task using `make-instance`
+3. Test accessing slot values using accessors
+4. Add output to verify the task was created correctly
 
 **Example**:
 #+begin_src lisp
 (defun test-basic-task ()
+  "Test creating and accessing a basic task"
+  (format t "~%=== Testing Basic Task ===~%")
   (let ((task (make-instance 'task 
                              :title "Learn CLOS"
                              :description "Study Common Lisp Object System")))
     (format t "Task: ~A~%" (task-title task))
-    (format t "Status: ~A~%" (task-status task))))
+    (format t "Status: ~A~%" (task-status task))
+    (format t "ID: ~A~%" (task-id task))
+    (format t "Created: ~A~%" (task-created-at task))))
 #+end_src
 
 * Exercise 3: Generic Functions
@@ -99,17 +118,7 @@ The tutorial is organized into progressive exercises:
 2. Define `task-css-class` generic function
 3. Define `validate-task` generic function
 
-**Example**:
-#+begin_src lisp
-(defgeneric task-display-name (task)
-  (:documentation "Return a formatted name for display"))
-
-(defgeneric task-css-class (task)
-  (:documentation "Return CSS class for styling"))
-
-(defgeneric validate-task (task)
-  (:documentation "Validate task data"))
-#+end_src
+**Note**: Generic functions define the interface for operations that can work with different types of objects. Use `defgeneric` with appropriate documentation strings.
 
 * Exercise 4: Method Implementations
 
@@ -120,18 +129,7 @@ The tutorial is organized into progressive exercises:
 2. Implement `task-css-class` method for TASK class
 3. Implement `validate-task` method for TASK class
 
-**Example**:
-#+begin_src lisp
-(defmethod task-display-name ((task task))
-  (task-title task))
-
-(defmethod task-css-class ((task task))
-  "task")
-
-(defmethod validate-task ((task task))
-  (and (task-title task)
-       (> (length (task-title task)) 0)))
-#+end_src
+**Note**: Methods implement the behavior for specific classes. The `task-display-name` should return a user-friendly name, `task-css-class` should return CSS class names for styling, and `validate-task` should check that the task has valid data.
 
 * Exercise 5: Task Inheritance
 
@@ -142,19 +140,7 @@ The tutorial is organized into progressive exercises:
 2. Define `work-task` class with deadline and assigned-to slots
 3. Define `urgent-task` class with high priority and escalation time
 
-**Example**:
-#+begin_src lisp
-(defclass personal-task (task)
-  ((priority :initform :low :accessor task-priority)))
-
-(defclass work-task (task)
-  ((deadline :initarg :deadline :accessor task-deadline)
-   (assigned-to :initarg :assigned-to :accessor task-assigned-to)))
-
-(defclass urgent-task (task)
-  ((priority :initform :high :accessor task-priority)
-   (escalation-time :initform 3600 :accessor task-escalation-time)))
-#+end_src
+**Note**: Use what you learned from Exercise 1 to define these classes. Remember to use `:superclass` to specify inheritance from the TASK class.
 
 * Exercise 6: Polymorphic Behavior
 
@@ -165,14 +151,7 @@ The tutorial is organized into progressive exercises:
 2. Implement specialized `task-css-class` methods
 3. Test polymorphic behavior
 
-**Example**:
-#+begin_src lisp
-(defmethod task-display-name ((task personal-task))
-  (format nil "~A (~A)" (task-title task) (task-priority task)))
-
-(defmethod task-css-class ((task urgent-task))
-  "urgent-task")
-#+end_src
+**Note**: The `task-css-class` function returns CSS class names for styling different task types in the web interface. For example, urgent tasks might have a "urgent-task" class for red styling.
 
 * Exercise 7: Method Combinations
 
@@ -183,21 +162,7 @@ The tutorial is organized into progressive exercises:
 2. Add logging before and after saving
 3. Add validation using `:before` methods
 
-**Example**:
-#+begin_src lisp
-(defgeneric save-task (task)
-  (:method-combination :around)
-  (:documentation "Save task with logging and validation"))
-
-(defmethod save-task :around ((task task))
-  (format t "Saving task: ~A~%" (task-title task))
-  (call-next-method)
-  (format t "Task saved successfully~%"))
-
-(defmethod save-task :before ((task task))
-  (unless (validate-task task)
-    (error "Invalid task: ~A" (task-title task))))
-#+end_src
+**Note**: Method combinations allow you to control the order and behavior of multiple methods. `:around` methods wrap the entire method call, while `:before` methods run before the primary method.
 
 * Exercise 8: Task Registry
 
@@ -208,17 +173,7 @@ The tutorial is organized into progressive exercises:
 2. Implement `add-task`, `remove-task`, `get-task` methods
 3. Create a singleton instance
 
-**Example**:
-#+begin_src lisp
-(defclass task-registry ()
-  ((tasks :initform (make-hash-table :test 'equal) :allocation :class))
-  (:documentation "Singleton registry for all tasks"))
-
-(defvar *task-registry* (make-instance 'task-registry))
-
-(defmethod add-task ((registry task-registry) task)
-  (setf (gethash (task-id task) (slot-value registry 'tasks)) task))
-#+end_src
+**Note**: Use `:allocation :class` to create class slots that are shared across all instances. A singleton pattern ensures only one registry exists.
 
 * Exercise 9: JSON Serialization
 
@@ -229,16 +184,7 @@ The tutorial is organized into progressive exercises:
 2. Implement `json-to-task` function
 3. Test serialization and deserialization
 
-**Example**:
-#+begin_src lisp
-(defmethod task-to-json ((task task))
-  (cl-json:encode-json-to-string
-   (list :id (task-id task)
-         :title (task-title task)
-         :description (task-description task)
-         :status (task-status task)
-         :created-at (task-created-at task))))
-#+end_src
+**Note**: Use the `cl-json` library to convert task objects to and from JSON format for web API communication.
 
 * Exercise 10: HTML Generation
 
@@ -249,15 +195,7 @@ The tutorial is organized into progressive exercises:
 2. Use CL-WHO for HTML generation
 3. Test HTML output
 
-**Example**:
-#+begin_src lisp
-(defmethod task-to-html ((task task))
-  (cl-who:with-html-output-to-string (*standard-output* nil)
-    (:div :class (task-css-class task)
-          (:h3 (task-display-name task))
-          (:p (task-description task))
-          (:span :class "status" (string-downcase (task-status task))))))
-#+end_src
+**Note**: CL-WHO provides a Lisp-like syntax for generating HTML. Use the `task-css-class` method to apply appropriate styling classes.
 
 * Web Integration Exercises (11-20)
 
